@@ -34,8 +34,8 @@
 #include "mercator_secrets.c"
 
 bool writeLogToSerial=true;
-
-bool testPreCannedLatLong=false;
+bool testPreCannedLatLong=true;
+bool enableOTATimer=true;
 
 const bool enableOTAServerAtStartup=false;
 const bool enableESPNow = !enableOTAServerAtStartup;
@@ -558,7 +558,7 @@ void loop()
   }
 
   // for dev without buttons attached to device.
-  if (otaTimerExpired < millis())
+  if (enableOTATimer && otaTimerExpired < millis())
   {
     USB_SERIAL.println("disable ESP Now, enable OTA");
     switchToPersistentOTAMode();
