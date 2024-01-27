@@ -60,10 +60,10 @@ void MapScreen_ex::initSprites()
   _compositedScreenSprite->setColorDepth(16);
   _compositedScreenSprite->createSprite(getTFTWidth(),getTFTHeight());
 
-   uint16_t s_headingIndicatorColour=TFT_RED;
-   uint16_t s_headingIndicatorRadius=8;
-   uint16_t s_headingIndicatorOffsetX=s_diverSpriteRadius;
-   uint16_t s_headingIndicatorOffsetY=0;
+  uint16_t s_headingIndicatorColour=TFT_RED;
+  uint16_t s_headingIndicatorRadius=8;
+  uint16_t s_headingIndicatorOffsetX=s_diverSpriteRadius;
+  uint16_t s_headingIndicatorOffsetY=0;
 
   _diverSprite->setColorDepth(16);
   _diverSprite->createSprite(s_diverSpriteRadius*2,s_diverSpriteRadius*2);
@@ -532,12 +532,21 @@ void MapScreen_ex::drawDiverOnCompositedMapSprite(const double latitude, const d
       _diverPlainSprite->pushToSprite(_compositedScreenSprite.get(),pDiver.x-s_diverSpriteRadius,pDiver.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
     }
 }
-/*
-void MapScreen_ex::drawFeaturesOnCleanMapSprite(const geo_map* featureMap)
+
+TFT_eSprite* MapScreen_ex::getCompositeSprite()
 {
-  drawFeaturesOnCleanMapSprite(featureMap,_zoom, _tileX, _tileY);
+  return _compositedScreenSprite.get();
 }
-*/
+
+void MapScreen_ex::writeOverlayTextToCompositeMapSprite()
+{
+  TFT_eSprite* canvas = _compositedScreenSprite.get();
+
+  canvas->setTextColor(TFT_WHITE);
+  canvas->setTextWrap(true);
+  canvas->setCursor(0,0);
+  canvas->println("TEST STRING hello junio asdjsajd iereu weq weiwei");
+}
 
 void MapScreen_ex::drawRegistrationPixelsOnCleanMapSprite(const geo_map* featureMap)
 {

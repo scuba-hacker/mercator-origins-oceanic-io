@@ -2,3 +2,4 @@
 .DS_Store
 .pio
 .vscode
+mercator_secrets.c
