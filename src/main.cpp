@@ -36,10 +36,10 @@
 bool writeLogToSerial=true;
 bool testPreCannedLatLong=true;
 bool enableOTATimer=true;
+uint32_t otaTimerExpired = 60000;
 
 const bool enableOTAServerAtStartup=false;
 const bool enableESPNow = !enableOTAServerAtStartup;
-uint32_t otaTimerExpired = 45000;
 
 const String ssid_not_connected = "-";
 String ssid_connected;
