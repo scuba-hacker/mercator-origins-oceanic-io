@@ -1,52 +1,23 @@
 #include <MapScreen_T4.h>
 
+#include "LilyWraysbury.h"
+
 #include <TFT_eSPI.h>
 
 #include "LilyGo_amoled.h"
 
-extern const unsigned short lily_wraysbury_N[];
-extern const unsigned short lily_wraysbury_S[];
-extern const unsigned short lily_wraysbury_SE[];
-extern const unsigned short lily_wraysbury_SW[];
-extern const unsigned short lily_wraysbury_W[];
-extern const unsigned short lily_wraysbury_all[];
 
 const geo_map MapScreen_T4::s_maps[] =
 {
-  [0] = { .mapData = lily_wraysbury_N, .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
-  [1] = { .mapData = lily_wraysbury_W, .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
-  [2] = { .mapData = lily_wraysbury_SW, .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
-  [3] = { .mapData = lily_wraysbury_S, .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
-  [4] = { .mapData = lily_wraysbury_SE, .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
-  [5] = { .mapData = lily_wraysbury_all, .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
+  [0] = { .mapData = lily_wraysbury_N.data(), .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
+  [1] = { .mapData = lily_wraysbury_W.data(), .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
+  [2] = { .mapData = lily_wraysbury_SW.data(), .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
+  [3] = { .mapData = lily_wraysbury_S.data(), .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
+  [4] = { .mapData = lily_wraysbury_SE.data(), .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
+  [5] = { .mapData = lily_wraysbury_All.data(), .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
   [6] = { .mapData = nullptr, .label="Canoe", .backColour=TFT_CYAN, .backText="Canoe",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54910, .mapLongitudeRight = -0.54880, .mapLatitudeBottom = 51.46190}, // Canoe area
   [7] = { .mapData = nullptr, .label="Sub",  .backColour=TFT_CYAN, .backText="Sub",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54931, .mapLongitudeRight = -0.54900, .mapLatitudeBottom = 51.4608}, // Sub area
 };
-
-MapScreen_T4::MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED* lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3) 
-{
-  initMapScreen();
-}
-
-int MapScreen_T4::getFirstDetailMapIndex()
-{
-  return _NMapIndex;
-}
-
-int MapScreen_T4::getEndDetailMaps()
-{
-  return _allLakeMapIndex;
-}
-
-int MapScreen_T4::getAllMapIndex()
-{
-  return _allLakeMapIndex;
-}
-
-const geo_map* MapScreen_T4::getMaps()
-{
-  return s_maps;
-}
 
 const MapScreen_ex::pixel MapScreen_T4::s_registrationPixels[MapScreen_T4::s_registrationPixelsSize] =
 {
@@ -71,31 +42,54 @@ const MapScreen_ex::pixel MapScreen_T4::s_registrationPixels[MapScreen_T4::s_reg
   [15] = { .x = mX_t3-o, .y = mY_t3-o, .colour = 0x0000},
 };
 
-void MapScreen_T4::copyFullScreenSpriteToDisplay(TFT_eSprite* sprite)
+MapScreen_T4::MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)
 {
-    _amoled->pushColors(0,0,getTFTWidth(),getTFTHeight(),(uint16_t*)(sprite->getPointer()));
+  initMapScreen();
+
+  _scratchPadSprite = std::make_unique<TFT_eSprite>(tft);  
+  _scratchPadSprite->createSprite(getTFTWidth(),getTFTHeight());
+}
+
+int MapScreen_T4::getFirstDetailMapIndex()
+{
+  return _NMapIndex;
+}
+
+int MapScreen_T4::getEndDetailMaps()
+{
+  return _allLakeMapIndex;
+}
+
+int MapScreen_T4::getAllMapIndex()
+{
+  return _allLakeMapIndex;
+}
+
+const geo_map* MapScreen_T4::getMaps()
+{
+  return s_maps;
+}
+
+void MapScreen_T4::copyFullScreenSpriteToDisplay(TFT_eSprite& sprite)
+{
+    _amoled.pushColors(0,0,getTFTWidth(),getTFTHeight(),reinterpret_cast<uint16_t*>(sprite.getPointer()));
 }
 
 void MapScreen_T4::fillScreen(int colour)
 {
-  TFT_eSprite* screen = new TFT_eSprite(_tft);
-  screen->createSprite(getTFTWidth(),getTFTHeight());
-  screen->fillSprite(colour);
-  copyFullScreenSpriteToDisplay(screen);
-  delete screen; screen=nullptr;
+  _scratchPadSprite->fillSprite(colour);
+  copyFullScreenSpriteToDisplay(*_scratchPadSprite);
 }
 
 // This needs customising for the T4 maps. Writes text to the canoe/sub zoomed in zones
-void MapScreen_T4::writeBackTextToScreen(const geo_map* map)
+void MapScreen_T4::writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map* map)
 {
     if (*map->backText)
     {
-        /*
-      _m5->Lcd.setCursor(5,5);
-      _m5->Lcd.setTextSize(3);
-      _m5->Lcd.setTextColor(TFT_BLACK, map->backColour);
-      _m5->Lcd.println(map->backText);
-      */
+      sprite.setCursor(5,30);
+      sprite.setTextSize(3);
+      sprite.setTextColor(TFT_BLACK, map->backColour);
+      sprite.println(map->backText);
     }
 }
 

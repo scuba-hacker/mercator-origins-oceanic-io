@@ -4,6 +4,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <freertos/queue.h>
+#include <memory>
 
 #include <fonts/NotoSansBold36.h>
 //#include <fonts/Final_Frontier_28.h>
@@ -108,7 +109,7 @@ TFT_eSPI tft = TFT_eSPI();
 LilyGo_AMOLED amoled;
 std::unique_ptr<MapScreen_T4> mapScreen;
 
-TFT_eSprite* compositeSprite = nullptr;
+std::shared_ptr<TFT_eSprite> compositeSprite;
 
 double latitude=51.460015;
 double longitude=-0.548316;
@@ -219,7 +220,7 @@ void setup()
   dumpHeapUsage("Setup(): end ");
 
   amoled.setBrightness(defaultBrightness);
-  mapScreen.reset(new MapScreen_T4(&tft,&amoled));
+  mapScreen = std::make_unique<MapScreen_T4>(&tft,amoled);
 
   compositeSprite = mapScreen->getCompositeSprite();
   compositeSprite->loadFont(NotoSansBold36);     // use smooth font    -D SMOOTH_FONT=1
@@ -453,7 +454,7 @@ void publishToMakoTestMessage(const char* testMessage)
       USB_SERIAL.println(mako_espnow_buffer);
     }
 
-    ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, (uint8_t*)mako_espnow_buffer, strlen(mako_espnow_buffer)+1);
+    ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, reinterpret_cast<uint8_t*>(mako_espnow_buffer), strlen(mako_espnow_buffer)+1);
   }
 }
 
@@ -467,7 +468,7 @@ void publishToMakoReedActivation(const bool topReed, const uint32_t ms)
       USB_SERIAL.println("Sending ESP R msg to Mako...");
       USB_SERIAL.println(mako_espnow_buffer);
     }
-    ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, (uint8_t*)mako_espnow_buffer, strlen(mako_espnow_buffer)+1);
+    ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, reinterpret_cast<uint8_t*>(mako_espnow_buffer), strlen(mako_espnow_buffer)+1);
   }
   else
   {
@@ -532,7 +533,7 @@ void loop()
           {
             latitude = old_latitude;
             longitude = old_longitude+0.00001;
-            heading = (int)(old_heading + 5) % 360;
+            heading = static_cast<int>((old_heading + 5)) % 360;
           }
 
           mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
@@ -717,7 +718,7 @@ void OnESPNowDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len
     USB_SERIAL.printf("Last Packet Recv Length: %d\n",data_len);
   }
 
-  xQueueSend(msgsReceivedQueue, (void*)data, (TickType_t)0);  // don't block on enqueue, just drop if queue is full
+  xQueueSend(msgsReceivedQueue, data, (TickType_t)0);  // don't block on enqueue, just drop if queue is full
 }
 
 bool TeardownESPNow()
@@ -747,10 +748,7 @@ const char* scanForKnownNetwork() // return first known network found
   {
     for (int i = 0; i < scanResults; ++i) 
     {
-      // Print SSID and RSSI for each device found
       String SSID = WiFi.SSID(i);
-
-      delay(10);
       
       // Check if the current device starts with the peerSSIDPrefix
       if (strcmp(SSID.c_str(), ssid_1) == 0)
@@ -1033,14 +1031,14 @@ bool ESPNowScanForPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, co
         {
           for (int ii = 0; ii < 6; ++ii ) 
           {
-            peer.peer_addr[ii] = (uint8_t) mac[ii];
+            peer.peer_addr[ii] = static_cast<uint8_t>(mac[ii]);
           }
         }
 
         peer.channel = ESPNOW_CHANNEL; // pick a channel
         peer.encrypt = 0; // no encryption
 
-        peer.priv = (void*)peerSSIDPrefix;   // distinguish between different peers
+        peer.priv = reinterpret_cast<void*>(const_cast<char*>(peerSSIDPrefix));   // distinguish between different peers
 
         peerFound = true;
         // we are planning to have only one slave in this example;

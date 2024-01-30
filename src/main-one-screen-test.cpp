@@ -1,3 +1,6 @@
+
+#ifdef RUN_SINGLE_SCREEN_TEST
+
 #include <Arduino.h>
 
 #include "MapScreen_T4.h"
@@ -36,3 +39,4 @@ void loop()
 { 
 
 }
+#endif

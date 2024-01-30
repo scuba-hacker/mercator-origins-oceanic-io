@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <cstddef>
+#include <memory>
 
 #include "navigation_waypoints.h"
 
@@ -31,17 +32,17 @@ MapScreen_ex::MapScreen_ex(TFT_eSPI* tft) :
   
   _currentMap = nullptr;
 
-  _cleanMapAndFeaturesSprite.reset(new TFT_eSprite(_tft));
-  _compositedScreenSprite.reset(new TFT_eSprite(_tft));
-  _diverSprite.reset(new TFT_eSprite(_tft));
-  _diverPlainSprite.reset(new TFT_eSprite(_tft));
-  _diverRotatedSprite.reset(new TFT_eSprite(_tft));
-  _featureSprite.reset(new TFT_eSprite(_tft));
+  _cleanMapAndFeaturesSprite = std::make_unique<TFT_eSprite>(_tft);
+  _compositedScreenSprite = std::make_shared<TFT_eSprite>(_tft);
+  _diverSprite = std::make_unique<TFT_eSprite>(_tft);
+  _diverPlainSprite = std::make_unique<TFT_eSprite>(_tft);
+  _diverRotatedSprite = std::make_unique<TFT_eSprite>(_tft);
+  _featureSprite = std::make_unique<TFT_eSprite>(_tft);
 
-  _targetSprite.reset(new TFT_eSprite(_tft));
-  _lastTargetSprite.reset(new TFT_eSprite(_tft));
+  _targetSprite = std::make_unique<TFT_eSprite>(_tft);
+  _lastTargetSprite = std::make_unique<TFT_eSprite>(_tft);
 
-  _featureToMaps.reset(new geoRef[getWaypointsLength()]);
+  _featureToMaps = std::make_unique<geoRef[]>(getWaypointsLength());
 }
 
 void MapScreen_ex::initMapScreen()
@@ -71,7 +72,7 @@ void MapScreen_ex::initSprites()
   
   _diverPlainSprite->setColorDepth(16);
   _diverPlainSprite->createSprite(s_diverSpriteRadius*2,s_diverSpriteRadius*2);
-  _diverSprite->pushToSprite(_diverPlainSprite.get(),0,0);
+  _diverSprite->pushToSprite(*_diverPlainSprite,0,0);
 
   _diverSprite->fillCircle(s_headingIndicatorOffsetX,s_headingIndicatorOffsetY,s_headingIndicatorRadius,s_headingIndicatorColour);
 
@@ -319,7 +320,7 @@ void MapScreen_ex::drawDiverOnBestFeaturesMapAtCurrentZoom(const double diverLat
     }
   }
 
-  _cleanMapAndFeaturesSprite->pushToSprite(_compositedScreenSprite.get(),0,0);
+  _cleanMapAndFeaturesSprite->pushToSprite(*_compositedScreenSprite,0,0);
 
   double distanceToClosestJetty = 0.0;
   double bearing = 0.0;
@@ -331,9 +332,9 @@ void MapScreen_ex::drawDiverOnBestFeaturesMapAtCurrentZoom(const double diverLat
       
   drawDiverOnCompositedMapSprite(diverLatitude, diverLongitude, diverHeading, nextMap);
 
-  copyFullScreenSpriteToDisplay(_compositedScreenSprite.get());
-
-  writeBackTextToScreen(nextMap);
+  writeMapTitleToSprite(*_compositedScreenSprite, nextMap);
+  
+  copyFullScreenSpriteToDisplay(*_compositedScreenSprite);
 
   _currentMap = nextMap;
 }
@@ -507,7 +508,7 @@ void MapScreen_ex::drawDiverOnCompositedMapSprite(const double latitude, const d
       int16_t tileX=0,tileY=0;
       p = scalePixelForZoomedInTile(p,tileX,tileY);
       if (tileX == diverTileX && tileY == diverTileY)  // only show last target sprite on screen if tiles match
-        _lastTargetSprite->pushToSprite(_compositedScreenSprite.get(), p.x-s_featureSpriteRadius,p.y-s_featureSpriteRadius,TFT_BLACK);
+        _lastTargetSprite->pushToSprite(*_compositedScreenSprite, p.x-s_featureSpriteRadius,p.y-s_featureSpriteRadius,TFT_BLACK);
     }
 
     if (_targetWaypoint)
@@ -517,35 +518,33 @@ void MapScreen_ex::drawDiverOnCompositedMapSprite(const double latitude, const d
       p = scalePixelForZoomedInTile(p,tileX,tileY);
   
       if (tileX == diverTileX && tileY == diverTileY)  // only show target sprite on screen if tiles match
-        _targetSprite->pushToSprite(_compositedScreenSprite.get(), p.x-s_featureSpriteRadius,p.y-s_featureSpriteRadius,TFT_BLACK);
+        _targetSprite->pushToSprite(*_compositedScreenSprite, p.x-s_featureSpriteRadius,p.y-s_featureSpriteRadius,TFT_BLACK);
      }
 
     // draw direction line to next target.
     if (_useDiverHeading)
     {
       _diverRotatedSprite->fillSprite(TFT_BLACK);
-      _diverSprite->pushRotated(_diverRotatedSprite.get(),heading,TFT_BLACK); // BLACK is the transparent colour
-      _diverRotatedSprite->pushToSprite(_compositedScreenSprite.get(),pDiver.x-s_diverSpriteRadius,pDiver.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
+      _diverSprite->pushRotated(*_diverRotatedSprite,heading,TFT_BLACK); // BLACK is the transparent colour
+      _diverRotatedSprite->pushToSprite(*_compositedScreenSprite,pDiver.x-s_diverSpriteRadius,pDiver.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
     }
     else
     {
-      _diverPlainSprite->pushToSprite(_compositedScreenSprite.get(),pDiver.x-s_diverSpriteRadius,pDiver.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
+      _diverPlainSprite->pushToSprite(*_compositedScreenSprite,pDiver.x-s_diverSpriteRadius,pDiver.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
     }
 }
 
-TFT_eSprite* MapScreen_ex::getCompositeSprite()
+std::shared_ptr<TFT_eSprite> MapScreen_ex::getCompositeSprite()
 {
-  return _compositedScreenSprite.get();
+  return _compositedScreenSprite;
 }
 
 void MapScreen_ex::writeOverlayTextToCompositeMapSprite()
 {
-  TFT_eSprite* canvas = _compositedScreenSprite.get();
-
-  canvas->setTextColor(TFT_WHITE);
-  canvas->setTextWrap(true);
-  canvas->setCursor(0,0);
-  canvas->println("TEST STRING hello junio asdjsajd iereu weq weiwei");
+  _compositedScreenSprite->setTextColor(TFT_WHITE);
+  _compositedScreenSprite->setTextWrap(true);
+  _compositedScreenSprite->setCursor(0,0);
+  _compositedScreenSprite->println("TEST STRING hello junio asdjsajd iereu weq weiwei");
 }
 
 void MapScreen_ex::drawRegistrationPixelsOnCleanMapSprite(const geo_map* featureMap)
@@ -563,7 +562,7 @@ void MapScreen_ex::drawRegistrationPixelsOnCleanMapSprite(const geo_map* feature
     if (p.x >= 0 && p.x < getTFTWidth() && p.y >=0 && p.y < getTFTHeight())   // CHANGE these to take account of tile shown  
     {
       if (s_useSpriteForFeatures)
-        _featureSprite->pushToSprite(_cleanMapAndFeaturesSprite.get(),p.x - s_featureSpriteRadius, p.y - s_featureSpriteRadius,TFT_BLACK);
+        _featureSprite->pushToSprite(*_cleanMapAndFeaturesSprite,p.x - s_featureSpriteRadius, p.y - s_featureSpriteRadius,TFT_BLACK);
       else
         _cleanMapAndFeaturesSprite->fillCircle(p.x,p.y,s_featureSpriteRadius,p.colour);
         
@@ -585,7 +584,7 @@ void MapScreen_ex::drawFeaturesOnCleanMapSprite(const geo_map* featureMap)
     if (tileX == _tileXToDisplay && tileY == _tileYToDisplay && p.x >= 0 && p.x < getTFTWidth() && p.y >=0 && p.y < getTFTHeight())   // CHANGE these to take account of tile shown  
     {
       if (s_useSpriteForFeatures)
-        _featureSprite->pushToSprite(_cleanMapAndFeaturesSprite.get(),p.x - s_featureSpriteRadius, p.y - s_featureSpriteRadius,TFT_BLACK);
+        _featureSprite->pushToSprite(*_cleanMapAndFeaturesSprite,p.x - s_featureSpriteRadius, p.y - s_featureSpriteRadius,TFT_BLACK);
       else
         _cleanMapAndFeaturesSprite->fillCircle(p.x,p.y,s_featureSpriteRadius,s_featureSpriteColour);
         
@@ -651,9 +650,9 @@ void MapScreen_ex::drawFeaturesOnSpecifiedMapToScreen(const geo_map* featureArea
     
     drawFeaturesOnCleanMapSprite(featureAreaToShow);
 
-    copyFullScreenSpriteToDisplay(_cleanMapAndFeaturesSprite.get());
+    writeMapTitleToSprite(*_cleanMapAndFeaturesSprite, featureAreaToShow);
 
-    writeBackTextToScreen(featureAreaToShow);
+    copyFullScreenSpriteToDisplay(*_cleanMapAndFeaturesSprite);
 }
 
 void MapScreen_ex::testAnimatingDiverSpriteOnCurrentMap()
@@ -665,12 +664,12 @@ void MapScreen_ex::testAnimatingDiverSpriteOnCurrentMap()
 
   for(int i=0;i<20;i++)
   {
-    _cleanMapAndFeaturesSprite->pushToSprite(_compositedScreenSprite.get(),0,0);
+    _cleanMapAndFeaturesSprite->pushToSprite(*_compositedScreenSprite,0,0);
     
     pixel p = convertGeoToPixelDouble(latitude, longitude, featureAreaToShow);
-    _diverSprite->pushToSprite(_compositedScreenSprite.get(),p.x-s_diverSpriteRadius,p.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
+    _diverSprite->pushToSprite(*_compositedScreenSprite,p.x-s_diverSpriteRadius,p.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
 
-    copyFullScreenSpriteToDisplay(_compositedScreenSprite.get());
+    copyFullScreenSpriteToDisplay(*_compositedScreenSprite);
 
     latitude+=0.0001;
     longitude+=0.0001;
@@ -742,10 +741,10 @@ void MapScreen_ex::testDrawingMapsAndFeatures(uint8_t& currentMap, int16_t& zoom
       
         for(int i=0;i<20;i++)
         {
-          _cleanMapAndFeaturesSprite->pushToSprite(_compositedScreenSprite.get(),0,0);
+          _cleanMapAndFeaturesSprite->pushToSprite(*_compositedScreenSprite,0,0);
           
           pixel p = convertGeoToPixelDouble(latitude, longitude, featureAreaToShow);
-          _diverSprite->pushToSprite(_compositedScreenSprite.get(),p.x-s_diverSpriteRadius,p.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
+          _diverSprite->pushToSprite(*_compositedScreenSprite,p.x-s_diverSpriteRadius,p.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
     
 //          _compositedScreenSprite->pushSprite(0,0);
           _amoled->pushColors((uint16_t*)(_compositedScreenSprite->getPointer()),getTFTWidth()*getTFTHeight());
@@ -773,10 +772,10 @@ void MapScreen_ex::testDrawingMapsAndFeatures(uint8_t& currentMap, int16_t& zoom
   
     for(int i=0;i<25;i++)
     {
-      _cleanMapAndFeaturesSprite->pushToSprite(_compositedScreenSprite.get(),0,0);
+      _cleanMapAndFeaturesSprite->pushToSprite(*_compositedScreenSprite,0,0);
       
       pixel p = convertGeoToPixelDouble(latitude, longitude, featureAreaToShow);
-      _diverSprite->pushToSprite(_compositedScreenSprite.get(),p.x-s_diverSpriteRadius,p.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
+      _diverSprite->pushToSprite(*_compositedScreenSprite,p.x-s_diverSpriteRadius,p.y-s_diverSpriteRadius,TFT_BLACK); // BLACK is the transparent colour
 
       //_compositedScreenSprite->pushSprite(0,0);
       _amoled->pushColors((uint16_t*)(_compositedScreenSprite->getPointer()),getTFTWidth()*getTFTHeight());

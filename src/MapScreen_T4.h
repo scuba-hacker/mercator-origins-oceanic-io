@@ -21,7 +21,9 @@ class MapScreen_T4 : public MapScreen_ex
         static const int s_subMapIndex = 7;
         static const int s_initialZoom = 1;
 
-        LilyGo_AMOLED* _amoled;
+        LilyGo_AMOLED& _amoled;
+    
+        std::unique_ptr<TFT_eSprite> _scratchPadSprite;
 
         virtual int getFirstDetailMapIndex() override;
         virtual int getEndDetailMaps() override;
@@ -45,7 +47,7 @@ class MapScreen_T4 : public MapScreen_ex
         static const BoundingBox boundingBoxesSub[];
 
     public:
-        MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED* lilygoT3);
+        MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3);
 
         virtual const MapScreen_ex::pixel* getRegistrationPixels() override { return s_registrationPixels;}
         virtual int getRegistrationPixelsSize() override { return s_registrationPixelsSize; }
@@ -54,8 +56,8 @@ class MapScreen_T4 : public MapScreen_ex
         virtual int16_t getTFTHeight() const override {return 450; }
 
         virtual void fillScreen(int colour) override;
-        virtual void copyFullScreenSpriteToDisplay(TFT_eSprite* sprite) override;
-        virtual void writeBackTextToScreen(const geo_map* map) override;
+        virtual void copyFullScreenSpriteToDisplay(TFT_eSprite& sprite) override;
+        virtual void writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map* map) override;
 
         virtual bool isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const override;
         virtual bool isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const override;

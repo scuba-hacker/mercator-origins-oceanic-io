@@ -22,7 +22,7 @@ class geo_map
     const float mapLongitudeRight;
     const float mapLatitudeBottom;
   
-    geo_map() : mapData(0),backColour(0),backText((const char*)0), surveyMap(false),swapBytes(false), mapLongitudeLeft(0),mapLongitudeRight(0),mapLatitudeBottom(0)
+    geo_map() : mapData(0),label(nullptr), backColour(0),backText((const char*)0), surveyMap(false),swapBytes(false), mapLongitudeLeft(0),mapLongitudeRight(0),mapLatitudeBottom(0)
     {}
     
     geo_map(const uint16_t*  md, const char* l, uint16_t bc,const char* bt, bool sm, bool sb, float ll, float lr, float lb) : mapData(md),label(l),backColour(bc),backText(bt),surveyMap(sm),swapBytes(sb),mapLongitudeLeft(ll),mapLongitudeRight(lr),mapLatitudeBottom(lb)
@@ -117,7 +117,7 @@ class MapScreen_ex
 
     void writeOverlayTextToCompositeMapSprite();
 
-    TFT_eSprite* getCompositeSprite();
+    std::shared_ptr<TFT_eSprite> getCompositeSprite();
 
     double distanceBetween(double lat1, double long1, double lat2, double long2) const;
     double degreesCourseTo(double lat1, double long1, double lat2, double long2) const;
@@ -162,7 +162,7 @@ class MapScreen_ex
 
     virtual void copyCompositeSpriteToDisplay()
     {
-      copyFullScreenSpriteToDisplay(_compositedScreenSprite.get());
+      copyFullScreenSpriteToDisplay(*_compositedScreenSprite);
     }
 
   protected:
@@ -174,7 +174,7 @@ class MapScreen_ex
   private:
     
     std::unique_ptr<TFT_eSprite> _cleanMapAndFeaturesSprite;
-    std::unique_ptr<TFT_eSprite> _compositedScreenSprite;
+    std::shared_ptr<TFT_eSprite> _compositedScreenSprite;
     std::unique_ptr<TFT_eSprite> _diverSprite;
     std::unique_ptr<TFT_eSprite> _diverPlainSprite;
     std::unique_ptr<TFT_eSprite> _diverRotatedSprite;
@@ -202,8 +202,8 @@ class MapScreen_ex
 
     bool _showAllLake;
 
-    virtual void writeBackTextToScreen(const geo_map* map) = 0;
-    virtual void copyFullScreenSpriteToDisplay(TFT_eSprite* sprite) = 0;
+    virtual void writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map* map) = 0;
+    virtual void copyFullScreenSpriteToDisplay(TFT_eSprite& sprite) = 0;
 
     const navigationWaypoint* _targetWaypoint;
     const navigationWaypoint* _prevWaypoint;
