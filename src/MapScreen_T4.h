@@ -50,7 +50,7 @@ class MapScreen_T4 : public MapScreen_ex
         static const BoundingBox boundingBoxesSub[];
 
     public:
-        MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3);
+        MapScreen_T4(TFT_eSPI& tft, LilyGo_AMOLED& lilygoT3);
 
         virtual const MapScreen_ex::pixel* getRegistrationPixels() override { return s_registrationPixels.data();}
         virtual int getRegistrationPixelsSize() override { return s_registrationPixelsSize; }

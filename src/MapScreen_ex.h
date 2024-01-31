@@ -13,7 +13,6 @@ class geo_map
 {
   public:
   
-//    const uint16_t* mapData;
     std::shared_ptr<const std::array<uint16_t,270000>> mapData;
     const char* label;
     const uint16_t backColour;
@@ -24,9 +23,6 @@ class geo_map
     const float mapLongitudeRight;
     const float mapLatitudeBottom;
   
-//    geo_map() : mapData(0),label(nullptr), backColour(0),backText((const char*)0), surveyMap(false),swapBytes(false), mapLongitudeLeft(0),mapLongitudeRight(0),mapLatitudeBottom(0)
-//    {}
-    
     geo_map(const std::array<uint16_t,270000>  *md, const char* l, uint16_t bc,const char* bt, bool sm, bool sb, float ll, float lr, float lb) : mapData(md),label(l),backColour(bc),backText(bt),surveyMap(sm),swapBytes(sb),mapLongitudeLeft(ll),mapLongitudeRight(lr),mapLatitudeBottom(lb)
     {}
 };
@@ -88,7 +84,7 @@ class MapScreen_ex
         virtual const geo_map* getNextMapByPixelLocation(MapScreen_ex::pixel loc, const geo_map* thisMap) = 0;
 
   public:
-    MapScreen_ex(TFT_eSPI* tft);
+    MapScreen_ex(TFT_eSPI& tft);
     
     ~MapScreen_ex()
     {
@@ -171,7 +167,7 @@ class MapScreen_ex
     int16_t _zoom;
     int16_t _priorToZoneZoom;
 
-    TFT_eSPI* _tft;
+    TFT_eSPI& _tft;
 
   private:
     
@@ -198,7 +194,7 @@ class MapScreen_ex
 
     bool _useDiverHeading;
     
-    const geo_map* _maps;
+    const geo_map* _maps; 
 
     const geo_map* _currentMap;
 

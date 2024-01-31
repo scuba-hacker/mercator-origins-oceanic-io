@@ -13,7 +13,7 @@ static const navigationWaypoint* exitWaypoints[exitWaypointCount];              
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
 const uint16_t MapScreen_ex::s_featureSpriteColour = TFT_MAGENTA;
 
-MapScreen_ex::MapScreen_ex(TFT_eSPI* tft) : 
+MapScreen_ex::MapScreen_ex(TFT_eSPI& tft) : 
                                                         _zoom(1),
                                                         _priorToZoneZoom(1),
                                                         _tileXToDisplay(0),
@@ -26,21 +26,20 @@ MapScreen_ex::MapScreen_ex(TFT_eSPI* tft) :
                                                         _targetWaypoint(nullptr),
                                                         _closestExitWaypoint(nullptr),
                                                         _prevWaypoint(nullptr),
-                                                        _drawAllFeatures(true)
+                                                        _drawAllFeatures(true),
+                                                        _tft(tft)
 {
-  _tft = tft;               // MBJ REFACTOR  
-  
   _currentMap = nullptr;
 
-  _cleanMapAndFeaturesSprite = std::make_unique<TFT_eSprite>(_tft);
-  _compositedScreenSprite = std::make_shared<TFT_eSprite>(_tft);
-  _diverSprite = std::make_unique<TFT_eSprite>(_tft);
-  _diverPlainSprite = std::make_unique<TFT_eSprite>(_tft);
-  _diverRotatedSprite = std::make_unique<TFT_eSprite>(_tft);
-  _featureSprite = std::make_unique<TFT_eSprite>(_tft);
+  _cleanMapAndFeaturesSprite = std::make_unique<TFT_eSprite>(&_tft);
+  _compositedScreenSprite = std::make_shared<TFT_eSprite>(&_tft);
+  _diverSprite = std::make_unique<TFT_eSprite>(&_tft);
+  _diverPlainSprite = std::make_unique<TFT_eSprite>(&_tft);
+  _diverRotatedSprite = std::make_unique<TFT_eSprite>(&_tft);
+  _featureSprite = std::make_unique<TFT_eSprite>(&_tft);
 
-  _targetSprite = std::make_unique<TFT_eSprite>(_tft);
-  _lastTargetSprite = std::make_unique<TFT_eSprite>(_tft);
+  _targetSprite = std::make_unique<TFT_eSprite>(&_tft);
+  _lastTargetSprite = std::make_unique<TFT_eSprite>(&_tft);
 
   _featureToMaps = std::make_unique<geoRef[]>(getWaypointsLength());
 }

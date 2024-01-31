@@ -6,7 +6,7 @@
 
 #include "LilyGo_amoled.h"
 
-const geo_map MapScreen_T4::s_maps[] =
+const geo_map MapScreen_T4::s_maps[] = 
 //const std::array<geo_map> s_maps =
 {
   [0] = { .mapData = &lily_wraysbury_N, .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
@@ -43,11 +43,11 @@ const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> Ma
 [15]= {  .x=mX_t3-o,  .y=mY_t3-o,  .colour=0x0000}
 }};     // How weird this is an older syntax from C++11 which requires an extra open and close brace.
 
-MapScreen_T4::MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)               // MBJ REFACTOR  remove *
+MapScreen_T4::MapScreen_T4(TFT_eSPI& tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)               // MBJ REFACTOR  remove *
 {
   initMapScreen();
 
-  _scratchPadSprite = std::make_unique<TFT_eSprite>(tft);  
+  _scratchPadSprite = std::make_unique<TFT_eSprite>(&tft);  
   _scratchPadSprite->createSprite(getTFTWidth(),getTFTHeight());
 }
 

@@ -222,7 +222,7 @@ void setup()
   dumpHeapUsage("Setup(): end ");
 
   amoled.setBrightness(defaultBrightness);
-  mapScreen = std::make_unique<MapScreen_T4>(&tft,amoled);
+  mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
 
   compositeSprite = mapScreen->getCompositeSprite();
   compositeSprite->loadFont(NotoSansBold36);     // use smooth font    -D SMOOTH_FONT=1
