@@ -1,0 +1,69 @@
+***** MapScreen_T4.h *****
+
+class geo_map
+{
+  public:
+  
+    const uint16_t* mapData;      // <-- change this to std::array unique_ptr ... ?
+    const char* label;
+    const uint16_t backColour;
+    const char* backText;
+    const bool surveyMap;
+    const bool swapBytes;
+    const float mapLongitudeLeft;
+    const float mapLongitudeRight;
+    const float mapLatitudeBottom;
+  
+    geo_map() : mapData(0),label(nullptr), backColour(0),backText((const char*)0), surveyMap(false),swapBytes(false), mapLongitudeLeft(0),mapLongitudeRight(0),mapLatitudeBottom(0)
+    {}
+    
+    geo_map(const uint16_t*  md, const char* l, uint16_t bc,const char* bt, bool sm, bool sb, float ll, float lr, float lb) : mapData(md),label(l),backColour(bc),backText(bt),surveyMap(sm),swapBytes(sb),mapLongitudeLeft(ll),mapLongitudeRight(lr),mapLatitudeBottom(lb)
+    {}
+};
+
+class MapScreen_T4
+{
+    ...
+        static const geo_map s_maps[];    <-- change to std::array
+    ...
+};
+
+***** MapScreen_T4.cpp *****
+
+
+const geo_map MapScreen_T4::s_maps[] =      // <-- get rid of .data() on the .MapData assignments
+{
+  [0] = { .mapData = lily_wraysbury_N.data(), .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
+  [1] = { .mapData = lily_wraysbury_W.data(), .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
+  [2] = { .mapData = lily_wraysbury_SW.data(), .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
+  [3] = { .mapData = lily_wraysbury_S.data(), .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
+  [4] = { .mapData = lily_wraysbury_SE.data(), .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
+  [5] = { .mapData = lily_wraysbury_All.data(), .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
+  [6] = { .mapData = nullptr, .label="Canoe", .backColour=TFT_CYAN, .backText="Canoe",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54910, .mapLongitudeRight = -0.54880, .mapLatitudeBottom = 51.46190}, // Canoe area
+  [7] = { .mapData = nullptr, .label="Sub",  .backColour=TFT_CYAN, .backText="Sub",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54931, .mapLongitudeRight = -0.54900, .mapLatitudeBottom = 51.4608}, // Sub area
+};
+
+***** LilyWraysbury.h *****
+
+#pragma once
+
+#include <array>
+#include <cstddef>
+
+const int lilyGoT4FullScreenBufferSize = 270000;    <-- get rid of the constant, have this determined by the compiler - c.f  [] C notation
+
+extern const std::array<uint16_t, lilyGoT4FullScreenBufferSize> lily_wraysbury_N;
+
+
+******* lily_wraysbury_N.cpp *******     (there are 5 others of these files for _S, _SE, etc)
+
+
+#include "LilyWraysbury.h"
+
+const std::array<uint16_t, lilyGoT4FullScreenBufferSize> lily_wraysbury_N = {       // <-- not have to specify buffer size - c.f. [] C notation
+// w,h:600,450
+0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,
+0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,0x14AF,
+........
+};
+

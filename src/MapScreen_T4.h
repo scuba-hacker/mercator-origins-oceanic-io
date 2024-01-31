@@ -9,12 +9,15 @@ class MapScreen_T4 : public MapScreen_ex
 {
     private:
         
-        static const int s_registrationPixelsSize = 16;
-        static const MapScreen_ex::pixel s_registrationPixels[s_registrationPixelsSize];
+        static constexpr int s_registrationPixelsSize = 16;
+//        static const MapScreen_ex::pixel s_registrationPixels[s_registrationPixelsSize];
 
-        static const int16_t mX_t3 = 600,  hX_t3 = 300;
-        static const int16_t mY_t3 = 450,  hY_t3 = 225;
-        static const int16_t o = 30;
+        static const std::array<MapScreen_ex::pixel, s_registrationPixelsSize> s_registrationPixels;
+
+
+        static constexpr int16_t mX_t3 = 600,  hX_t3 = 300;
+        static constexpr int16_t mY_t3 = 450,  hY_t3 = 225;
+        static constexpr int16_t o = 30;
 
         static const int s_allLakeMapIndex = 5;
         static const int s_canoeMapIndex = 6;
@@ -49,7 +52,7 @@ class MapScreen_T4 : public MapScreen_ex
     public:
         MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3);
 
-        virtual const MapScreen_ex::pixel* getRegistrationPixels() override { return s_registrationPixels;}
+        virtual const MapScreen_ex::pixel* getRegistrationPixels() override { return s_registrationPixels.data();}
         virtual int getRegistrationPixelsSize() override { return s_registrationPixelsSize; }
 
         virtual int16_t getTFTWidth() const override {return 600;}

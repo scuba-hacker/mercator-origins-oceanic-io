@@ -237,7 +237,7 @@ protected:
     {
       MapScreen_ex::pixel topLeft;
       MapScreen_ex::pixel botRight;
-      const geo_map* map;
+      const geo_map* map;               // MBJ REFACTOR  
 
       BoundingBox(const MapScreen_ex::pixel tl, const MapScreen_ex::pixel br, const geo_map* m) : 
         topLeft(tl), botRight(br), map(m)

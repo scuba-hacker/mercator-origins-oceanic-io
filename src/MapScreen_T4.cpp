@@ -6,8 +6,7 @@
 
 #include "LilyGo_amoled.h"
 
-
-const geo_map MapScreen_T4::s_maps[] =
+const geo_map MapScreen_T4::s_maps[] =               // MBJ REFACTOR  remove .data()
 {
   [0] = { .mapData = lily_wraysbury_N.data(), .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
   [1] = { .mapData = lily_wraysbury_W.data(), .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
@@ -19,30 +18,31 @@ const geo_map MapScreen_T4::s_maps[] =
   [7] = { .mapData = nullptr, .label="Sub",  .backColour=TFT_CYAN, .backText="Sub",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54931, .mapLongitudeRight = -0.54900, .mapLatitudeBottom = 51.4608}, // Sub area
 };
 
-const MapScreen_ex::pixel MapScreen_T4::s_registrationPixels[MapScreen_T4::s_registrationPixelsSize] =
-{
-  [0] = { .x = o,    .y = o,    .colour = 0xFF00},
-  [1] = { .x = hX_t3-o, .y = o,    .colour = 0xFF00},
-  [2] = { .x = o,    .y = hY_t3-o, .colour = 0xFF00},
-  [3] = { .x = hX_t3-o, .y = hY_t3-o, .colour = 0xFF00},
+//const MapScreen_ex::pixel MapScreen_T4::s_registrationPixels[MapScreen_T4::s_registrationPixelsSize] =
+const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> MapScreen_T4::s_registrationPixels
+{{
+[0]=  {  .x=o,     .y=o,     .colour=0xFF00},
+[1]=  {  .x=hX_t3-o,  .y=o,     .colour=0xFF00},
+[2]=  {  .x=o,     .y=hY_t3-o,  .colour=0xFF00},
+[3]=  {  .x=hX_t3-o,  .y=hY_t3-o,  .colour=0xFF00},
   
-  [4] = { .x = hX_t3+o, .y = o,    .colour = 0xFFFF},
-  [5] = { .x = mX_t3-o, .y = o,    .colour = 0xFFFF},
-  [6] = { .x = hX_t3+o, .y = hY_t3-o, .colour = 0xFFFF},
-  [7] = { .x = mX_t3-o, .y = hY_t3-o, .colour = 0xFFFF},
+[4]=  {  .x=hX_t3+o,  .y=o,     .colour=0xFFFF},
+[5]=  {  .x=mX_t3-o,  .y=o,     .colour=0xFFFF},
+[6]=  {  .x=hX_t3+o,  .y=hY_t3-o,  .colour=0xFFFF},
+[7]=  {  .x=mX_t3-o,  .y=hY_t3-o,  .colour=0xFFFF},
 
-  [8]  = { .x = o,    .y = hY_t3+o, .colour = 0x00FF},
-  [9]  = { .x = hX_t3-o, .y = hY_t3+o, .colour = 0x00FF},
-  [10] = { .x = o,    .y = mY_t3-o, .colour = 0x00FF},
-  [11] = { .x = hX_t3-o, .y = mY_t3-o, .colour = 0x00FF},
+[8]=  {  .x=o,     .y=hY_t3+o,  .colour=0x00FF},
+[9]=  {  .x=hX_t3-o,  .y=hY_t3+o,  .colour=0x00FF},
+[10]= {  .x=o,     .y=mY_t3-o,  .colour=0x00FF},
+[11]= {  .x=hX_t3-o,  .y=mY_t3-o,  0x00FF},
 
-  [12] = { .x = hX_t3+o, .y = hY_t3+o, .colour = 0x0000},
-  [13] = { .x = mX_t3-o, .y = hY_t3+o, .colour = 0x0000},
-  [14] = { .x = hX_t3+o, .y = mY_t3-o, .colour = 0x0000},
-  [15] = { .x = mX_t3-o, .y = mY_t3-o, .colour = 0x0000},
-};
+[12]= {  .x=hX_t3+o,  .y=hY_t3+o,  .colour=0x0000},
+[13]= {  .x=mX_t3-o,  .y=hY_t3+o,  .colour=0x0000},
+[14]= {  .x=hX_t3+o,  .y=mY_t3-o,  .colour=0x0000},
+[15]= {  .x=mX_t3-o,  .y=mY_t3-o,  .colour=0x0000}
+}};     // How weird this is an older syntax from C++11 which requires an extra open and close brace.
 
-MapScreen_T4::MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)
+MapScreen_T4::MapScreen_T4(TFT_eSPI* tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)               // MBJ REFACTOR  remove *
 {
   initMapScreen();
 
@@ -168,7 +168,7 @@ const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, 
 
 // This is the M5 canoe bounding box - needs updating for T4
 // BOUNDING BOX FOR CANOE M5: TOP-LEFT (62, 51) BOT-RIGHT (79, 71) 
-const MapScreen_ex::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesCanoe[] = {{{62,51},{79,71},{MapScreen_T4::_NMap}}};
+const MapScreen_ex::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesCanoe[] = {{{62,51},{79,71},{MapScreen_T4::_NMap}}};               // MBJ REFACTOR  
 
 bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const
 {
@@ -186,7 +186,7 @@ bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_m
 // This is the M5 sub bounding box - needs updating for T4
 // BOUNDING BOX FOR SUB M5 North Map: TOP-LEFT (48, 168) BOT-RIGHT (65, 191)
 // BOUNDING BOX FOR SUB M5 Cafe Jetty Map: TOP-LEFT (12, 53) BOT-RIGHT (31, 72)
-const MapScreen_T4::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesSub[] = {
+const MapScreen_T4::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesSub[] = {               // MBJ REFACTOR  
                   {{48,168},{65,191},{MapScreen_T4::_NMap}},
                   {{12,53},{31,72},{MapScreen_T4::_NMap/*_cafeJettyMap*/}}
                   };

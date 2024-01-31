@@ -61,8 +61,8 @@ bool isPairedWithMako = false;
 const int RESET_ESPNOW_SEND_RESULT = 0xFF;
 esp_err_t ESPNowSendResult=(esp_err_t)RESET_ESPNOW_SEND_RESULT;
 
-char mako_espnow_buffer[256];
-char currentTime[9];
+char mako_espnow_buffer[256];               // MBJ REFACTOR  
+char currentTime[9];               // MBJ REFACTOR  
 
 QueueHandle_t msgsReceivedQueue;
 
@@ -98,12 +98,14 @@ uint32_t lastSecondButtonPressLasted = 0;
 bool primaryButtonIndicatorNeedsClearing = false;
 bool secondButtonIndicatorNeedsClearing = false;
 
+/*
 extern const unsigned short lily_wraysbury_all[];
 extern const unsigned short lily_wraysbury_N[];
 extern const unsigned short lily_wraysbury_SE[];
 extern const unsigned short lily_wraysbury_S[];
 extern const unsigned short lily_wraysbury_SW[];
 extern const unsigned short lily_wraysbury_W[];
+*/
 
 TFT_eSPI tft = TFT_eSPI();
 LilyGo_AMOLED amoled;
@@ -120,11 +122,11 @@ double heading=0.0;
 
 const int defaultBrightness = 255;
 
-char rxQueueItemBuffer[256];
+char rxQueueItemBuffer[256];               // MBJ REFACTOR  
 const uint8_t queueLength=4;
 
-char currentTarget[128];
-char previousTarget[128];
+char currentTarget[128];               // MBJ REFACTOR  
+char previousTarget[128];               // MBJ REFACTOR  
 bool refreshTargetShown = false;
 
 bool checkReedSwitches();

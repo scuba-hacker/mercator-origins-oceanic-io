@@ -8,7 +8,7 @@
 #include "navigation_waypoints.h"
 
 static const uint8_t exitWaypointCount = 4;
-static const navigationWaypoint* exitWaypoints[exitWaypointCount];
+static const navigationWaypoint* exitWaypoints[exitWaypointCount];                   // MBJ REFACTOR  
 
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
 const uint16_t MapScreen_ex::s_featureSpriteColour = TFT_MAGENTA;
@@ -28,7 +28,7 @@ MapScreen_ex::MapScreen_ex(TFT_eSPI* tft) :
                                                         _prevWaypoint(nullptr),
                                                         _drawAllFeatures(true)
 {
-  _tft = tft;
+  _tft = tft;               // MBJ REFACTOR  
   
   _currentMap = nullptr;
 
@@ -94,7 +94,7 @@ void MapScreen_ex::initSprites()
 
 void MapScreen_ex::initFeatureToMapsLookup()
 {
-  for (int i=0; i<waypointCount; i++)
+  for (int i=0; i<waypointCount; i++)                    // MBJ REFACTOR  
   {
     initMapsForFeature(waypoints+i,_featureToMaps[i]);
   }
@@ -106,7 +106,7 @@ void MapScreen_ex::initMapsForFeature(const navigationWaypoint* waypoint, geoRef
   
   pixel p;
   
-  for (uint8_t i = getFirstDetailMapIndex(); i < getEndDetailMaps(); i++)
+  for (uint8_t i = getFirstDetailMapIndex(); i < getEndDetailMaps(); i++)               // MBJ REFACTOR  
   {
     p = convertGeoToPixelDouble(waypoint->_lat, waypoint->_long, _maps+i);
     if (p.x >= 0 && p.x < getTFTWidth() && p.y >=0 && p.y < getTFTHeight())
@@ -124,7 +124,7 @@ void MapScreen_ex::initExitWaypoints()
 {
   int currentExitIndex=0;
   
-  for (int i=0; i<waypointCount; i++)
+  for (int i=0; i<waypointCount; i++)               // MBJ REFACTOR  
   {
     if (strncmp(waypoints[i]._label, "Z0", 2) == 0)
     {
@@ -145,7 +145,7 @@ void MapScreen_ex::initCurrentMap(const double diverLatitude, const double diver
   pixel p;
   
   // identify first map that includes diver location within extent
-  for (uint8_t i = getFirstDetailMapIndex(); i<=getAllMapIndex(); i++)
+  for (uint8_t i = getFirstDetailMapIndex(); i<=getAllMapIndex(); i++)               // MBJ REFACTOR  
   {
     p = convertGeoToPixelDouble(diverLatitude, diverLongitude, _maps+i);
     if (p.x >= 0 && p.x < getTFTWidth() && p.y >=0 && p.y < getTFTHeight())
@@ -170,7 +170,7 @@ void MapScreen_ex::setTargetWaypointByLabel(const char* label)
   _prevWaypoint = _targetWaypoint;
   _targetWaypoint = nullptr;
   // find targetWayPoint in the navigation_waypoints array by first 3 chars
-  for (int i=0; i < waypointCount; i++)
+  for (int i=0; i < waypointCount; i++)               // MBJ REFACTOR  
   {
     if (strncmp(waypoints[i]._label, label, 3) == 0)
     {
@@ -255,9 +255,9 @@ const navigationWaypoint* MapScreen_ex::getClosestJetty(double& shortestDistance
   shortestDistance = 1e10;
   const navigationWaypoint* closest = nullptr;
 
-  const navigationWaypoint** next = exitWaypoints;
+  const navigationWaypoint** next = exitWaypoints;               // MBJ REFACTOR  
   
-  while (*next)
+  while (*next)               // MBJ REFACTOR  
   {
     double distance = distanceBetween(_lastDiverLatitude, _lastDiverLongitude, (*next)->_lat, (*next)->_long);
   
@@ -287,7 +287,7 @@ void MapScreen_ex::drawDiverOnBestFeaturesMapAtCurrentZoom(const double diverLat
   
   pixel p = convertGeoToPixelDouble(diverLatitude, diverLongitude, _currentMap);
 
-  const geo_map* nextMap = getNextMapByPixelLocation(p, _currentMap);
+  const geo_map* nextMap = getNextMapByPixelLocation(p, _currentMap);               // MBJ REFACTOR  
 
   if (nextMap != _currentMap)
   {
@@ -549,7 +549,7 @@ void MapScreen_ex::writeOverlayTextToCompositeMapSprite()
 
 void MapScreen_ex::drawRegistrationPixelsOnCleanMapSprite(const geo_map* featureMap)
 {
-  for(int i=0;i<getRegistrationPixelsSize();i++)
+  for(int i=0;i<getRegistrationPixelsSize();i++)               // MBJ REFACTOR  
   {
     pixel p = getRegistrationPixels()[i];
   
@@ -662,7 +662,7 @@ void MapScreen_ex::testAnimatingDiverSpriteOnCurrentMap()
   double latitude = featureAreaToShow->mapLatitudeBottom;
   double longitude = featureAreaToShow->mapLongitudeLeft;
 
-  for(int i=0;i<20;i++)
+  for(int i=0;i<20;i++)               // MBJ REFACTOR  
   {
     _cleanMapAndFeaturesSprite->pushToSprite(*_compositedScreenSprite,0,0);
     
