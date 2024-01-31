@@ -305,7 +305,7 @@ void MapScreen_ex::drawDiverOnBestFeaturesMapAtCurrentZoom(const double diverLat
     if (nextMap->mapData)
     {
       _cleanMapAndFeaturesSprite->pushImageScaled(0, 0, getTFTWidth(), getTFTHeight(), _zoom, _tileXToDisplay, _tileYToDisplay, 
-                                                  nextMap->mapData, nextMap->swapBytes);
+                                                  nextMap->mapData->data(), nextMap->swapBytes);
 
       if (_drawAllFeatures)
       {
@@ -641,7 +641,7 @@ void MapScreen_ex::drawFeaturesOnSpecifiedMapToScreen(const geo_map* featureArea
     if (featureAreaToShow->mapData)
     {
       _cleanMapAndFeaturesSprite->pushImageScaled(0, 0, getTFTWidth(), getTFTHeight(), zoom, tileX, tileY, 
-                                                  featureAreaToShow->mapData, featureAreaToShow->swapBytes);
+                                                  featureAreaToShow->mapData->data(), featureAreaToShow->swapBytes);
     }
     else
     {

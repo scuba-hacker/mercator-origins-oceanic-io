@@ -6,14 +6,15 @@
 
 #include "LilyGo_amoled.h"
 
-const geo_map MapScreen_T4::s_maps[] =               // MBJ REFACTOR  remove .data()
+const geo_map MapScreen_T4::s_maps[] =
+//const std::array<geo_map> s_maps =
 {
-  [0] = { .mapData = lily_wraysbury_N.data(), .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
-  [1] = { .mapData = lily_wraysbury_W.data(), .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
-  [2] = { .mapData = lily_wraysbury_SW.data(), .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
-  [3] = { .mapData = lily_wraysbury_S.data(), .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
-  [4] = { .mapData = lily_wraysbury_SE.data(), .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
-  [5] = { .mapData = lily_wraysbury_All.data(), .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
+  [0] = { .mapData = &lily_wraysbury_N, .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
+  [1] = { .mapData = &lily_wraysbury_W, .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
+  [2] = { .mapData = &lily_wraysbury_SW, .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
+  [3] = { .mapData = &lily_wraysbury_S, .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
+  [4] = { .mapData = &lily_wraysbury_SE, .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
+  [5] = { .mapData = &lily_wraysbury_All, .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
   [6] = { .mapData = nullptr, .label="Canoe", .backColour=TFT_CYAN, .backText="Canoe",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54910, .mapLongitudeRight = -0.54880, .mapLatitudeBottom = 51.46190}, // Canoe area
   [7] = { .mapData = nullptr, .label="Sub",  .backColour=TFT_CYAN, .backText="Sub",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54931, .mapLongitudeRight = -0.54900, .mapLatitudeBottom = 51.4608}, // Sub area
 };

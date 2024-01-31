@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <memory>
+#include <array>
 
 class TFT_eSPI;
 class TFT_eSprite;
@@ -12,7 +13,8 @@ class geo_map
 {
   public:
   
-    const uint16_t* mapData;
+//    const uint16_t* mapData;
+    std::shared_ptr<const std::array<uint16_t,270000>> mapData;
     const char* label;
     const uint16_t backColour;
     const char* backText;
@@ -22,10 +24,10 @@ class geo_map
     const float mapLongitudeRight;
     const float mapLatitudeBottom;
   
-    geo_map() : mapData(0),label(nullptr), backColour(0),backText((const char*)0), surveyMap(false),swapBytes(false), mapLongitudeLeft(0),mapLongitudeRight(0),mapLatitudeBottom(0)
-    {}
+//    geo_map() : mapData(0),label(nullptr), backColour(0),backText((const char*)0), surveyMap(false),swapBytes(false), mapLongitudeLeft(0),mapLongitudeRight(0),mapLatitudeBottom(0)
+//    {}
     
-    geo_map(const uint16_t*  md, const char* l, uint16_t bc,const char* bt, bool sm, bool sb, float ll, float lr, float lb) : mapData(md),label(l),backColour(bc),backText(bt),surveyMap(sm),swapBytes(sb),mapLongitudeLeft(ll),mapLongitudeRight(lr),mapLatitudeBottom(lb)
+    geo_map(const std::array<uint16_t,270000>  *md, const char* l, uint16_t bc,const char* bt, bool sm, bool sb, float ll, float lr, float lb) : mapData(md),label(l),backColour(bc),backText(bt),surveyMap(sm),swapBytes(sb),mapLongitudeLeft(ll),mapLongitudeRight(lr),mapLatitudeBottom(lb)
     {}
 };
 
