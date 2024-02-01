@@ -194,9 +194,9 @@ class MapScreen_ex
 
     bool _useDiverHeading;
     
-    const geo_map* _maps; 
+    const geo_map* _maps;       // MBJ REFACTOR once s_maps refactored to std::array in MapScreen_T4.g then this pointer goes
 
-    const geo_map* _currentMap;
+    const geo_map* _currentMap;  // MBJ REFACTOR  and then get rid of this pointer
 
     bool _showAllLake;
 
