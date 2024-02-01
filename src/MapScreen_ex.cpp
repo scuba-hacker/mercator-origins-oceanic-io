@@ -10,6 +10,11 @@
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
 const uint8_t MapScreen_ex::s_diverSpriteRadius = 15;
 
+const uint16_t s_headingIndicatorColour=TFT_RED;
+const uint16_t s_headingIndicatorRadius=8;
+const uint16_t s_headingIndicatorOffsetX=s_diverSpriteRadius;
+const uint16_t s_headingIndicatorOffsetY=0;
+
 const uint16_t MapScreen_ex::s_diverHeadingColour = TFT_BLUE;
 
 const uint16_t MapScreen_ex::s_featureSpriteColour = TFT_MAGENTA;
@@ -66,11 +71,6 @@ void MapScreen_ex::initSprites()
 
   _compositedScreenSprite->setColorDepth(16);
   _compositedScreenSprite->createSprite(getTFTWidth(),getTFTHeight());
-
-  uint16_t s_headingIndicatorColour=TFT_RED;
-  uint16_t s_headingIndicatorRadius=8;
-  uint16_t s_headingIndicatorOffsetX=s_diverSpriteRadius;
-  uint16_t s_headingIndicatorOffsetY=0;
 
   _diverSprite->setColorDepth(16);
   _diverSprite->createSprite(s_diverSpriteRadius*2,s_diverSpriteRadius*2);
