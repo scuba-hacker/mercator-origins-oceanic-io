@@ -175,14 +175,18 @@ class MapScreen_ex
     std::unique_ptr<TFT_eSprite> _targetSprite;
     std::unique_ptr<TFT_eSprite> _lastTargetSprite;
 
-
     static const uint8_t s_diverSpriteRadius;
     static const uint8_t s_featureSpriteRadius;
     static const uint16_t s_diverSpriteColour;
-    static const uint16_t s_diverHeadingColour
+    static const uint16_t s_diverHeadingColour;
+    static const uint16_t s_headingIndicatorColour;
+    static const uint16_t s_headingIndicatorRadius;
+    static const uint16_t s_headingIndicatorOffsetX;
+    static const uint16_t s_headingIndicatorOffsetY;
+
     static const uint16_t s_featureSpriteColour;
-    static const uint16_t s_targetSpriteColour = TFT_RED;
-    static const uint16_t s_lastTargetSpriteColour = TFT_BLUE;
+    static const uint16_t s_targetSpriteColour;
+    static const uint16_t s_lastTargetSpriteColour;
     static const bool     s_useSpriteForFeatures = true;
 
     static const int directionLineColour;
