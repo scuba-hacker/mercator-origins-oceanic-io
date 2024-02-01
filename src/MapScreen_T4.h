@@ -3,17 +3,15 @@
 
 #include <MapScreen_ex.h>
 
+#include "navigation_waypoints.h"
+
 class LilyGo_AMOLED;
 
 class MapScreen_T4 : public MapScreen_ex
 {
     private:
-        
         static constexpr int s_registrationPixelsSize = 16;
-//        static const MapScreen_ex::pixel s_registrationPixels[s_registrationPixelsSize];
-
         static const std::array<MapScreen_ex::pixel, s_registrationPixelsSize> s_registrationPixels;
-
 
         static constexpr int16_t mX_t3 = 600,  hX_t3 = 300;
         static constexpr int16_t mY_t3 = 450,  hY_t3 = 225;
@@ -49,21 +47,28 @@ class MapScreen_T4 : public MapScreen_ex
         static const BoundingBox boundingBoxesCanoe[];
         static const BoundingBox boundingBoxesSub[];
 
+//    MBJMBJ THIS IS THE BREAKAGE
+    std::array<geoRef, 255>    _featureToMaps;        // NEEDS TO BE SAME AS NUMBER IN NAVIGATION ARRAY
+
     public:
         MapScreen_T4(TFT_eSPI& tft, LilyGo_AMOLED& lilygoT3);
 
-        virtual const MapScreen_ex::pixel* getRegistrationPixels() override { return s_registrationPixels.data();}
-        virtual int getRegistrationPixelsSize() override { return s_registrationPixelsSize; }
+        virtual MapScreen_ex::pixel getRegistrationMarkLocation(int index) override;
+
+        virtual int getRegistrationMarkLocationsSize() override { return s_registrationPixelsSize; }
+
+        void initFeatureToMapsLookup();
+        void initMapsForFeature(const navigationWaypoint& waypoint, geoRef& ref);
 
         virtual int16_t getTFTWidth() const override {return 600;}
         virtual int16_t getTFTHeight() const override {return 450; }
 
         virtual void fillScreen(int colour) override;
         virtual void copyFullScreenSpriteToDisplay(TFT_eSprite& sprite) override;
-        virtual void writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map* map) override;
+        virtual void writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map& map) override;
 
-        virtual bool isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const override;
-        virtual bool isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const override;
+        virtual bool isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const override;
+        virtual bool isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const override;
 };
 #endif
 

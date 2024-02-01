@@ -36,7 +36,7 @@
 
 bool writeLogToSerial=true;
 bool testPreCannedLatLong=true;
-bool enableOTATimer=true;
+bool enableOTATimer=false;
 uint32_t otaTimerExpired = 60000;
 
 const bool enableOTAServerAtStartup=false;
@@ -200,7 +200,9 @@ void recoveryScreen()
 
 void setup()
 {
+  dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
+  dumpHeapUsage("Setup(): after amoled.begin() ");
 
   if (writeLogToSerial)
   {
@@ -208,8 +210,8 @@ void setup()
     Serial.flush();
     delay(50);
   }
+  dumpHeapUsage("Setup(): after USB serial port started ");
 
-  dumpHeapUsage("Setup(): end ");
 
   amoled.setBrightness(defaultBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
@@ -1018,13 +1020,13 @@ bool ESPNowScanForPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, co
         }
                 
         // Get BSSID => Mac Address of the Slave
-        int mac[6];
-        if ( 6 == sscanf(BSSIDstr.c_str(), "%x:%x:%x:%x:%x:%x",  &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5] ) ) 
+        const int macLength = 6;
+        std::array <int, macLength> mac;
+
+        if ( macLength == sscanf(BSSIDstr.c_str(), "%x:%x:%x:%x:%x:%x",  &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5] ) ) 
         {
-          for (int ii = 0; ii < 6; ++ii ) 
-          {
+          for (int ii = 0; ii < mac.size(); ++ii ) 
             peer.peer_addr[ii] = static_cast<uint8_t>(mac[ii]);
-          }
         }
 
         peer.channel = ESPNOW_CHANNEL; // pick a channel

@@ -43,9 +43,46 @@ const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> Ma
 [15]= {  .x=mX_t3-o,  .y=mY_t3-o,  .colour=0x0000}
 }};     // How weird this is an older syntax from C++11 which requires an extra open and close brace.
 
-MapScreen_T4::MapScreen_T4(TFT_eSPI& tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)               // MBJ REFACTOR  remove *
+MapScreen_ex::pixel MapScreen_T4::getRegistrationMarkLocation(int index) 
+{ 
+    if (index < s_registrationPixelsSize)
+        return s_registrationPixels[index];
+    else 
+        return pixel(-1,-1);
+}
+
+void MapScreen_T4::initFeatureToMapsLookup()
+{
+  for (int i=0; i<getWaypointsCount(); i++)                    // MBJ REFACTOR  - needs range and enumerate in C++20
+  {
+    initMapsForFeature(waypoints[i],_featureToMaps[i]);     // index i used here
+  }
+}
+void MapScreen_T4::initMapsForFeature(const navigationWaypoint& waypoint, geoRef& ref)
+{
+  int refIndex = 0;
+  
+  pixel p;
+  
+  for (uint8_t i = getFirstDetailMapIndex(); i < getEndDetailMaps(); i++)    // MBJ REFACTOR  - needs range and enumerate in C++20 (with break at getEndDetailMaps())
+  {
+    p = convertGeoToPixelDouble(waypoint._lat, waypoint._long, s_maps[i]);
+    if (p.x >= 0 && p.x < getTFTWidth() && p.y >=0 && p.y < getTFTHeight())
+    {
+      ref.geoMaps[refIndex++] = i;    // index i used here
+    }
+    else
+    {
+      ref.geoMaps[refIndex++] = -1;
+    }
+  }
+}
+
+MapScreen_T4::MapScreen_T4(TFT_eSPI& tft, LilyGo_AMOLED& lilygoT3) : MapScreen_ex(tft),_amoled(lilygoT3)
 {
   initMapScreen();
+
+  initFeatureToMapsLookup();
 
   _scratchPadSprite = std::make_unique<TFT_eSprite>(&tft);  
   _scratchPadSprite->createSprite(getTFTWidth(),getTFTHeight());
@@ -83,14 +120,14 @@ void MapScreen_T4::fillScreen(int colour)
 }
 
 // This needs customising for the T4 maps. Writes text to the canoe/sub zoomed in zones
-void MapScreen_T4::writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map* map)
+void MapScreen_T4::writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map& map)
 {
-    if (*map->backText)
+    if (map.backText)
     {
       sprite.setCursor(5,30);
       sprite.setTextSize(3);
-      sprite.setTextColor(TFT_BLACK, map->backColour);
-      sprite.println(map->backText);
+      sprite.setTextColor(TFT_BLACK, map.backColour);
+      sprite.println(map.backText);
     }
 }
 
@@ -109,13 +146,13 @@ const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, 
   }
   else if (thisMap == _NMap)   // go right from 0 to 1
   {
-    if (isPixelInCanoeZone(loc, thisMap))
+    if (isPixelInCanoeZone(loc, *thisMap))
     {
       _priorToZoneZoom=_zoom;
       _zoom = 1;
       nextMap = _canoeZoneMap;
     }
-    else if (isPixelInSubZone(loc, thisMap))
+    else if (isPixelInSubZone(loc, *thisMap))
     {
       _priorToZoneZoom=_zoom;
       _zoom = 1;
@@ -128,13 +165,13 @@ const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, 
   }
   else if (thisMap == _WMap)
   { 
-    if (isPixelInCanoeZone(loc, thisMap))
+    if (isPixelInCanoeZone(loc, *thisMap))
     {
       _priorToZoneZoom=_zoom;
       _zoom = 1;
       nextMap = _canoeZoneMap;
     }
-    else if (isPixelInSubZone(loc, thisMap))
+    else if (isPixelInSubZone(loc, *thisMap))
     {
       _priorToZoneZoom=_zoom;
       _zoom = 1;
@@ -169,9 +206,9 @@ const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, 
 
 // This is the M5 canoe bounding box - needs updating for T4
 // BOUNDING BOX FOR CANOE M5: TOP-LEFT (62, 51) BOT-RIGHT (79, 71) 
-const MapScreen_ex::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesCanoe[] = {{{62,51},{79,71},{MapScreen_T4::_NMap}}};               // MBJ REFACTOR  
+const MapScreen_ex::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesCanoe[] = {{{62,51},{79,71},{*MapScreen_T4::_NMap}}};               // MBJ REFACTOR to std::array
 
-bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const
+bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const
 {
   return false;   // temp T4
 
@@ -187,12 +224,12 @@ bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_m
 // This is the M5 sub bounding box - needs updating for T4
 // BOUNDING BOX FOR SUB M5 North Map: TOP-LEFT (48, 168) BOT-RIGHT (65, 191)
 // BOUNDING BOX FOR SUB M5 Cafe Jetty Map: TOP-LEFT (12, 53) BOT-RIGHT (31, 72)
-const MapScreen_T4::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesSub[] = {               // MBJ REFACTOR  
-                  {{48,168},{65,191},{MapScreen_T4::_NMap}},
-                  {{12,53},{31,72},{MapScreen_T4::_NMap/*_cafeJettyMap*/}}
+const MapScreen_T4::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesSub[] = {               // MBJ REFACTOR to std::array
+                  {{48,168},{65,191},{*MapScreen_T4::_NMap}},
+                  {{12,53},{31,72},{*MapScreen_T4::_NMap/*_cafeJettyMap*/}}
                   };
 
-bool MapScreen_T4::isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const
+bool MapScreen_T4::isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const
 {
   return false;   // temp T4
 

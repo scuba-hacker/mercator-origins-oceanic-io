@@ -27,12 +27,6 @@ class geo_map
     {}
 };
 
-class geoRef
-{
-  public:
-    int geoMaps[4];
-};
-
 /* Requirements:
  *  
  *  DONE - survey maps are checked for presence before non-survey maps.
@@ -53,7 +47,7 @@ class geoRef
 class MapScreen_ex
 {  
   private:
-  
+
    public:
     class pixel
     {
@@ -68,8 +62,8 @@ class MapScreen_ex
     };
     
     protected:        
-        virtual const MapScreen_ex::pixel* getRegistrationPixels() = 0;
-        virtual int getRegistrationPixelsSize() = 0;
+        virtual pixel getRegistrationMarkLocation(int index) = 0;
+        virtual int getRegistrationMarkLocationsSize() = 0;
 
         virtual int getFirstDetailMapIndex() = 0;
         virtual int getEndDetailMaps() = 0;
@@ -107,11 +101,11 @@ class MapScreen_ex
     virtual void fillScreen(int colour) = 0;
 
     void drawFeaturesOnSpecifiedMapToScreen(int featureIndex, int16_t zoom=1, int16_t tileX=0, int16_t tileY=0);
-    void drawFeaturesOnSpecifiedMapToScreen(const geo_map* featureAreaToShow, int16_t zoom=1, int16_t tileX=0, int16_t tileY=0);
+    void drawFeaturesOnSpecifiedMapToScreen(const geo_map& featureAreaToShow, int16_t zoom=1, int16_t tileX=0, int16_t tileY=0);
 
     void drawDiverOnBestFeaturesMapAtCurrentZoom(const double diverLatitude, const double diverLongitude, const double diverHeading = 0);
     
-    void drawDiverOnCompositedMapSprite(const double latitude, const double longitude, const double heading, const geo_map* featureMap);
+    void drawDiverOnCompositedMapSprite(const double latitude, const double longitude, const double heading, const geo_map& featureMap);
 
     void writeOverlayTextToCompositeMapSprite();
 
@@ -122,15 +116,15 @@ class MapScreen_ex
     double radiansCourseTo(double lat1, double long1, double lat2, double long2) const;
 
 
-    const navigationWaypoint* getClosestJetty(double& distance);
+    const int getClosestJettyIndex(double& distance);
 
     int drawDirectionLineOnCompositeSprite(const double diverLatitude, const double diverLongitude, 
-                                                    const geo_map* featureMap, const navigationWaypoint* waypoint, uint16_t colour, int indicatorLength);
+                                                    const geo_map& featureMap, const int waypointIndex, uint16_t colour, int indicatorLength);
 
     void drawHeadingLineOnCompositeMapSprite(const double diverLatitude, const double diverLongitude, 
-                                            const double heading, const geo_map* featureMap);
+                                            const double heading, const geo_map& featureMap);
 
-    void drawRegistrationPixelsOnCleanMapSprite(const geo_map* featureMap);
+    void drawRegistrationPixelsOnCleanMapSprite(const geo_map& featureMap);
 
     void cycleZoom();
 
@@ -143,7 +137,7 @@ class MapScreen_ex
 
     void setDrawAllFeatures(const bool showAll)
     { 
-      _drawAllFeatures = showAll; 
+      _drawAllFeatures = showAll;
       _currentMap = nullptr;
     }
 
@@ -180,13 +174,18 @@ class MapScreen_ex
     std::unique_ptr<TFT_eSprite> _targetSprite;
     std::unique_ptr<TFT_eSprite> _lastTargetSprite;
 
-    std::unique_ptr<geoRef[]>    _featureToMaps;
 
-    static const uint8_t s_diverSpriteRadius = 15;
-    static const uint8_t s_featureSpriteRadius = 5;
+    static const uint8_t s_diverSpriteRadius;
+    static const uint8_t s_featureSpriteRadius;
     static const uint16_t s_diverSpriteColour;
     static const uint16_t s_featureSpriteColour;
     static const bool     s_useSpriteForFeatures = true;
+
+    static const int directionLineColour;
+    static const int directionLinePixelLength;
+
+    static const int targetLineColour;
+    static const int targetLinePixelLength;
 
     double _lastDiverLatitude;
     double _lastDiverLongitude;
@@ -200,12 +199,11 @@ class MapScreen_ex
 
     bool _showAllLake;
 
-    virtual void writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map* map) = 0;
+    virtual void writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map& map) = 0;
     virtual void copyFullScreenSpriteToDisplay(TFT_eSprite& sprite) = 0;
 
-    const navigationWaypoint* _targetWaypoint;
-    const navigationWaypoint* _prevWaypoint;
-    const navigationWaypoint* _closestExitWaypoint;
+    int _targetWaypointIndex;
+    int _prevWaypointIndex;
    
     int16_t _tileXToDisplay;
     int16_t _tileYToDisplay;
@@ -213,21 +211,17 @@ class MapScreen_ex
     bool _drawAllFeatures;
     
     void initSprites();
-    void initFeatureToMapsLookup();
     void initExitWaypoints();
-    void initMapsForFeature(const navigationWaypoint* waypoint, geoRef& ref);
 
-    void drawFeaturesOnCleanMapSprite(const geo_map* featureMap);
-//    void drawFeaturesOnCleanMapSprite(const geo_map* featureMap,uint8_t zoom, uint8_t tileX, uint8_t tileY);
-    pixel convertGeoToPixelDouble(double latitude, double longitude, const geo_map* mapToPlot) const;
+    void drawFeaturesOnCleanMapSprite(const geo_map& featureMap);
     
     MapScreen_ex::pixel scalePixelForZoomedInTile(const pixel p, int16_t& tileX, int16_t& tileY) const;
 
-    virtual bool isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const = 0;
-    virtual bool isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map* thisMap) const = 0;
+    virtual bool isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const = 0;
+    virtual bool isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const = 0;
 
-    void debugPixelMapOutput(const MapScreen_ex::pixel loc, const geo_map* thisMap, const geo_map* nextMap) const;
-    void debugPixelFeatureOutput(navigationWaypoint* waypoint, MapScreen_ex::pixel loc, const geo_map* thisMap) const;
+    void debugPixelMapOutput(const MapScreen_ex::pixel loc, const geo_map* thisMap, const geo_map& nextMap) const;
+    void debugPixelFeatureOutput(const navigationWaypoint& waypoint, MapScreen_ex::pixel loc, const geo_map& thisMap) const;
     void debugScaledPixelForTile(pixel p, pixel pScaled, int16_t tileX,int16_t tileY) const;
 
 protected:
@@ -235,20 +229,21 @@ protected:
     {
       MapScreen_ex::pixel topLeft;
       MapScreen_ex::pixel botRight;
-      const geo_map* map;               // MBJ REFACTOR  
+      const geo_map& map;
 
-      BoundingBox(const MapScreen_ex::pixel tl, const MapScreen_ex::pixel br, const geo_map* m) : 
+      BoundingBox(const MapScreen_ex::pixel tl, const MapScreen_ex::pixel br, const geo_map& m) : 
         topLeft(tl), botRight(br), map(m)
         { 
 
         }
-      bool withinBox(pixel l, const geo_map* m) const
+      bool withinBox(pixel l, const geo_map& m) const
       {
-        return (m == map && l.x >= topLeft.x && l.y >= topLeft.y && l.x <= botRight.x && l.y <= botRight.y);
+        return (&m == &map && l.x >= topLeft.x && l.y >= topLeft.y && l.x <= botRight.x && l.y <= botRight.y);
       }
     };
 
     bool isPixelOutsideScreenExtent(const MapScreen_ex::pixel loc) const;
+    pixel convertGeoToPixelDouble(double latitude, double longitude, const geo_map& mapToPlot) const;
 };
 
 #endif

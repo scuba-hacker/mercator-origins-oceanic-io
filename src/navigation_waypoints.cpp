@@ -1,7 +1,14 @@
 #include "navigation_waypoints.h"
 
-const navigationWaypoint waypoints[] =
-{
+const uint8_t waypointCount = 113;
+uint8_t getWaypointsCount() { return waypointCount; }
+
+const uint8_t exitWaypointIndicesSize = 10;
+std::array<int,10> exitWaypointIndices;
+int exitWaypointCount=0;
+
+const std::array<navigationWaypoint,waypointCount> waypoints = 
+{{
   [0] = { ._label =  "03N Scimitar Car 5.5m", ._lat = 51.460347, ._long = -0.5489195},
   [1] = { ._label =  "04N Spitfire Car 6m", ._lat = 51.4601028571429, ._long = -0.54883835},
   [2] = { ._label =  "05N The Lightning Boat 5.5m", ._lat = 51.4605855, ._long = -0.548901666666667},
@@ -118,36 +125,9 @@ const navigationWaypoint waypoints[] =
   [109] = { ._label = "Sub NW2", ._lat =  51.461031, ._long = -0.5492317},
   [110] = { ._label = "Sub NE2", ._lat = 51.4610231, ._long = -0.5490675},
   [111] = { ._label = "Sub SE2", ._lat =  51.460884, ._long = -0.5490634},
-  [112] = { ._label = "Sub SW2", ._lat = 51.4608861, ._long = -0.5492377},
+  [112] = { ._label = "Sub SW2", ._lat = 51.4608861, ._long = -0.5492377}
 
-
+}
 };
 
-const uint8_t waypointCount = sizeof(waypoints)/sizeof(navigationWaypoint);
 
-uint8_t getWaypointsLength() { return waypointCount; }
-
-
-/*
-const uint8_t waypointCount = 3;
-
-navigationWaypoint waypoints[waypointCount] =
-{
-  [0] = { ._label = "Cafe Jetty", ._lat = 51.460015, ._long = -0.548316},
-  [1] = { ._label = "Mid Jetty", ._lat = 51.459547, ._long = -0.547461},
-  [2] = { ._label = "Old Jetty",  ._lat = 51.459280, ._long = -0.547084}
-};
-*/
-
-/*
-// re-captured from google maps
-const uint8_t waypointCount = 4;
-
-navigationWaypoint waypoints[waypointCount] =
-{
-  [0] = { ._label = "Cafe Jetty", ._lat = 51.460009, ._long = -0.5483115},
-  [1] = { ._label = "Mid Jetty", ._lat = 51.4595416, ._long = -0.5474575},
-  [2] = { ._label = "Old Jetty",  ._lat = 51.45928, ._long = -0.547084},
-  [3] = { ._label = "Confined",  ._lat = 51.4599901, ._long = -0.548643}
-};
-*/
