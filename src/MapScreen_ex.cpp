@@ -10,6 +10,8 @@
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
 const uint8_t MapScreen_ex::s_diverSpriteRadius = 15;
 
+const uint16_t MapScreen_ex::s_diverHeadingColour = TFT_BLUE;
+
 const uint16_t MapScreen_ex::s_featureSpriteColour = TFT_MAGENTA;
 const uint8_t MapScreen_ex::s_featureSpriteRadius = 5;
 
@@ -459,12 +461,12 @@ void MapScreen_ex::drawHeadingLineOnCompositeMapSprite(const double diverLatitud
   pHeading.x = pDiver.x + hY_t3potoneuse * sin(rads);
   pHeading.y = pDiver.y - hY_t3potoneuse * cos(rads);
 
-  _compositedScreenSprite->drawLine(pDiver.x, pDiver.y, pHeading.x,pHeading.y,TFT_BLUE);
+  _compositedScreenSprite->drawLine(pDiver.x, pDiver.y, pHeading.x,pHeading.y,s_diverHeadingColour);
 
-  _compositedScreenSprite->drawLine(pDiver.x-2, pDiver.y-2, pHeading.x,pHeading.y,TFT_BLUE);
-  _compositedScreenSprite->drawLine(pDiver.x-2, pDiver.y+2, pHeading.x,pHeading.y,TFT_BLUE);
-  _compositedScreenSprite->drawLine(pDiver.x+2, pDiver.y-2, pHeading.x,pHeading.y,TFT_BLUE);
-  _compositedScreenSprite->drawLine(pDiver.x+2, pDiver.y+2, pHeading.x,pHeading.y,TFT_BLUE);
+  _compositedScreenSprite->drawLine(pDiver.x-2, pDiver.y-2, pHeading.x,pHeading.y,s_diverHeadingColour);
+  _compositedScreenSprite->drawLine(pDiver.x-2, pDiver.y+2, pHeading.x,pHeading.y,s_diverHeadingColour);
+  _compositedScreenSprite->drawLine(pDiver.x+2, pDiver.y-2, pHeading.x,pHeading.y,s_diverHeadingColour);
+  _compositedScreenSprite->drawLine(pDiver.x+2, pDiver.y+2, pHeading.x,pHeading.y,s_diverHeadingColour);
 }
 
 void MapScreen_ex::drawDiverOnCompositedMapSprite(const double latitude, const double longitude, const double heading, const geo_map& featureMap)
