@@ -10,15 +10,15 @@
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
 const uint8_t MapScreen_ex::s_diverSpriteRadius = 15;
 
-const uint16_t s_headingIndicatorColour=TFT_RED;
-const uint16_t s_headingIndicatorRadius=8;
-const uint16_t s_headingIndicatorOffsetX=s_diverSpriteRadius;
-const uint16_t s_headingIndicatorOffsetY=0;
+const uint16_t MapScreen_ex::s_headingIndicatorColour=TFT_RED;
+const uint16_t MapScreen_ex::s_headingIndicatorRadius=8;
+const uint16_t MapScreen_ex::s_headingIndicatorOffsetX=s_diverSpriteRadius;
+const uint16_t MapScreen_ex::s_headingIndicatorOffsetY=0;
 
 const uint16_t MapScreen_ex::s_diverHeadingColour = TFT_BLUE;
 
 const uint16_t MapScreen_ex::s_featureSpriteColour = TFT_MAGENTA;
-const uint8_t MapScreen_ex::s_featureSpriteRadius = 5;
+const uint8_t  MapScreen_ex::s_featureSpriteRadius = 5;
 
 const uint16_t MapScreen_ex::s_targetSpriteColour = TFT_RED;
 const uint16_t MapScreen_ex::s_lastTargetSpriteColour = TFT_BLUE;
@@ -91,11 +91,11 @@ void MapScreen_ex::initSprites()
 
   _targetSprite->setColorDepth(16);
   _targetSprite->createSprite(s_featureSpriteRadius*2+1,s_featureSpriteRadius*2+1);
-  _targetSprite->fillCircle(s_featureSpriteRadius,s_featureSpriteRadius,s_featureSpriteRadius,targetSpriteColour);
+  _targetSprite->fillCircle(s_featureSpriteRadius,s_featureSpriteRadius,s_featureSpriteRadius,s_targetSpriteColour);
 
   _lastTargetSprite->setColorDepth(16);
   _lastTargetSprite->createSprite(s_featureSpriteRadius*2+1,s_featureSpriteRadius*2+1);
-  _lastTargetSprite->fillCircle(s_featureSpriteRadius,s_featureSpriteRadius,s_featureSpriteRadius,lastTargetSpriteColour);
+  _lastTargetSprite->fillCircle(s_featureSpriteRadius,s_featureSpriteRadius,s_featureSpriteRadius,s_lastTargetSpriteColour);
 }
 
 void MapScreen_ex::initExitWaypoints()
