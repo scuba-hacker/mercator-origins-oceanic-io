@@ -131,7 +131,7 @@ void MapScreen_T4::writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map& map
 }
 
 // This needs customising for the T4 maps. Currently switches when within 30 pixels of screen edge.
-const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, const geo_map* thisMap)
+const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, const geo_map* thisMap)  // MBJ REFACTOR want to get rid of pointers here once geo_maps array is std::array
 {
   const geo_map* nextMap = thisMap;
 
