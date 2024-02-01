@@ -1,6 +1,6 @@
-#include "LilyWraysbury.h"
+#include <stdint.h>
 
-const std::array<uint16_t, lilyGoT4FullScreenBufferSize> lily_wraysbury_W = {
+extern const uint16_t lily_wraysbury_W[] = {
 // w,h:600,450
 0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,
 0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,0x3CEF,

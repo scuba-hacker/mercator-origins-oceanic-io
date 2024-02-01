@@ -10,7 +10,7 @@ class LilyGo_AMOLED;
 class MapScreen_T4 : public MapScreen_ex
 {
     private:
-        static constexpr int s_registrationPixelsSize = 16;           // MBJ REFACTOR - HOW TO GET RID OF regpixelssize HERE? c.f. C array x[]
+        static constexpr int s_registrationPixelsSize = 16;
         static const std::array<MapScreen_ex::pixel, s_registrationPixelsSize> s_registrationPixels;
 
         static constexpr int16_t mX_t3 = 600,  hX_t3 = 300;

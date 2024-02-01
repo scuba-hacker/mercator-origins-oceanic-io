@@ -10,7 +10,7 @@
 #include "navigation_waypoints.h"
 
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
-const uint8_t MapScreen_ex::s_diverSpriteRadius = 15;
+const uint8_t  MapScreen_ex::s_diverSpriteRadius = 15;
 
 const uint16_t MapScreen_ex::s_headingIndicatorColour=TFT_RED;
 const uint16_t MapScreen_ex::s_headingIndicatorRadius=8;
@@ -153,10 +153,11 @@ void MapScreen_ex::setTargetWaypointByLabel(const char* label)
 {
   _prevWaypointIndex = _targetWaypointIndex;
   _targetWaypointIndex = -1;
+  const int numberCharsToCompare = 3;
   // find targetWayPoint in the navigation_waypoints array by first 3 chars
   for (int i=0; i < getWaypointsCount(); i++)        // MBJ REFACTOR - needs range and enumerate from C++20 as index used.
   {
-    if (strncmp(waypoints[i]._label, label, 3) == 0)
+    if (strncmp(waypoints[i]._label, label, numberCharsToCompare) == 0)
     {
       _targetWaypointIndex=i;            // index i used here
       break;
@@ -286,7 +287,7 @@ void MapScreen_ex::drawDiverOnBestFeaturesMapAtCurrentZoom(const double diverLat
     if (nextMap->mapData)
     {
       _cleanMapAndFeaturesSprite->pushImageScaled(0, 0, getTFTWidth(), getTFTHeight(), _zoom, _tileXToDisplay, _tileYToDisplay, 
-                                                  nextMap->mapData->data(), nextMap->swapBytes);
+                                                  nextMap->mapData, nextMap->swapBytes);
 
       if (_drawAllFeatures)
       {
@@ -525,7 +526,7 @@ void MapScreen_ex::writeOverlayTextToCompositeMapSprite()
   _compositedScreenSprite->setTextColor(TFT_WHITE);
   _compositedScreenSprite->setTextWrap(true);
   _compositedScreenSprite->setCursor(0,0);
-  _compositedScreenSprite->println("TEST STRING hello junio asdjsajd iereu weq weiwei");
+  _compositedScreenSprite->println("_ex TEST STRING");
 }
 
 void MapScreen_ex::drawRegistrationPixelsOnCleanMapSprite(const geo_map& featureMap)
@@ -622,7 +623,7 @@ void MapScreen_ex::drawFeaturesOnSpecifiedMapToScreen(const geo_map& featureArea
     if (featureAreaToShow.mapData)
     {
       _cleanMapAndFeaturesSprite->pushImageScaled(0, 0, getTFTWidth(), getTFTHeight(), zoom, tileX, tileY, 
-                                                  featureAreaToShow.mapData->data(), featureAreaToShow.swapBytes);
+                                                  featureAreaToShow.mapData, featureAreaToShow.swapBytes);
     }
     else
     {

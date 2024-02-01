@@ -1,25 +1,29 @@
 #include <MapScreen_T4.h>
 
-#include "LilyWraysbury.h"
-
 #include <TFT_eSPI.h>
 
 #include "LilyGo_amoled.h"
 
-const geo_map MapScreen_T4::s_maps[] =    // MBJ REFACTOR to std::array also c.f. C array - no specifying of array length
-//const std::array<geo_map> s_maps =
+extern const uint16_t lily_wraysbury_N[];
+extern const uint16_t lily_wraysbury_W[];
+extern const uint16_t lily_wraysbury_SW[];
+extern const uint16_t lily_wraysbury_S[];
+extern const uint16_t lily_wraysbury_SE[];
+extern const uint16_t lily_wraysbury_All[];
+
+const geo_map MapScreen_T4::s_maps[] =
 {
-  [0] = { .mapData = &lily_wraysbury_N, .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
-  [1] = { .mapData = &lily_wraysbury_W, .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
-  [2] = { .mapData = &lily_wraysbury_SW, .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
-  [3] = { .mapData = &lily_wraysbury_S, .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
-  [4] = { .mapData = &lily_wraysbury_SE, .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
-  [5] = { .mapData = &lily_wraysbury_All, .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
+  [0] = { .mapData = lily_wraysbury_N, .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
+  [1] = { .mapData = lily_wraysbury_W, .label="West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5501, .mapLongitudeRight = -0.5471, .mapLatitudeBottom = 51.4606},
+  [2] = { .mapData = lily_wraysbury_SW, .label="South West", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5494, .mapLongitudeRight = -0.5464, .mapLatitudeBottom = 51.4597},
+  [3] = { .mapData = lily_wraysbury_S, .label="South", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5491, .mapLongitudeRight = -0.5461, .mapLatitudeBottom = 51.4591},
+  [4] = { .mapData = lily_wraysbury_SE, .label="South East", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.548, .mapLongitudeRight = -0.545, .mapLatitudeBottom = 51.4588},
+  [5] = { .mapData = lily_wraysbury_All, .label="All", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5517, .mapLongitudeRight = -0.5437, .mapLatitudeBottom = 51.4588},
   [6] = { .mapData = nullptr, .label="Canoe", .backColour=TFT_CYAN, .backText="Canoe",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54910, .mapLongitudeRight = -0.54880, .mapLatitudeBottom = 51.46190}, // Canoe area
   [7] = { .mapData = nullptr, .label="Sub",  .backColour=TFT_CYAN, .backText="Sub",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54931, .mapLongitudeRight = -0.54900, .mapLatitudeBottom = 51.4608}, // Sub area
 };
 
-const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> MapScreen_T4::s_registrationPixels     // MBJ REFACTOR - HOW TO GET RID OF s_registrationPixelsSize HERE? c.f. C array x[]
+const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> MapScreen_T4::s_registrationPixels
 {{
 [0]=  {  .x=o,     .y=o,     .colour=0xFF00},
 [1]=  {  .x=hX_t3-o,  .y=o,     .colour=0xFF00},
@@ -131,7 +135,7 @@ void MapScreen_T4::writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map& map
 }
 
 // This needs customising for the T4 maps. Currently switches when within 30 pixels of screen edge.
-const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, const geo_map* thisMap)  // MBJ REFACTOR want to get rid of pointers here once geo_maps array is std::array
+const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, const geo_map* thisMap)
 {
   const geo_map* nextMap = thisMap;
 
