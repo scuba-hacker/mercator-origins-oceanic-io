@@ -24,18 +24,18 @@ class navigationWaypoint
 
 class geoRef
 {
-  static const int geoMapsSize=10;  // should be same number as number of maps
+  static const int geoMapsSize=10;  // should be same number as number of maps? - set to arbitrarily larger size.
   public:
-    int geoMaps[geoMapsSize];    // corresponds to number of maps being used - set to arbitrarily large size.
+    int geoMaps[geoMapsSize];       // MBJ REFACTOR to std::array
 };
 
 
 extern const uint8_t waypointCount;
-extern const std::array<navigationWaypoint,113> waypoints;
+extern const std::array<navigationWaypoint,113> waypoints;    // MBJ REFACTOR - get rid of hardcoding how?
 extern uint8_t getWaypointsCount();
 
 extern const uint8_t exitWaypointIndicesSize;
-extern std::array<int,10> exitWaypointIndices;
+extern std::array<int,10> exitWaypointIndices;      // MBJ REFACTOR - get rid of hardcoding how?
 extern int exitWaypointCount;
 
 #endif

@@ -11,9 +11,10 @@ class navigationWaypoint;
 
 class geo_map
 {
+  static const int mapSize = 270000;
+
   public:
-  
-    std::shared_ptr<const std::array<uint16_t,270000>> mapData;
+    std::shared_ptr<const std::array<uint16_t,mapSize>> mapData;   // MBJ REFACTOR - HOW TO GET RID OF mapSize HERE? c.f. C array x[]
     const char* label;
     const uint16_t backColour;
     const char* backText;

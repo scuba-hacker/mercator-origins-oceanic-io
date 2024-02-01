@@ -10,7 +10,7 @@ class LilyGo_AMOLED;
 class MapScreen_T4 : public MapScreen_ex
 {
     private:
-        static constexpr int s_registrationPixelsSize = 16;
+        static constexpr int s_registrationPixelsSize = 16;           // MBJ REFACTOR - HOW TO GET RID OF WAYPOINTCOUNT HERE? c.f. C array x[]
         static const std::array<MapScreen_ex::pixel, s_registrationPixelsSize> s_registrationPixels;
 
         static constexpr int16_t mX_t3 = 600,  hX_t3 = 300;
@@ -44,11 +44,11 @@ class MapScreen_T4 : public MapScreen_ex
         static constexpr const geo_map* _canoeZoneMap=s_maps+6;static const uint8_t _canoeZoneMapIndex = 6;
         static constexpr const geo_map* _subZoneMap=s_maps+7;  static const uint8_t _subZoneMapIndex = 7;
 
-        static const BoundingBox boundingBoxesCanoe[];
-        static const BoundingBox boundingBoxesSub[];
+        static const std::array<MapScreen_ex::MapScreen_ex::BoundingBox, 1> boundingBoxesCanoe;
+        static const std::array<MapScreen_ex::MapScreen_ex::BoundingBox, 2> boundingBoxesSub;
 
-//    MBJMBJ THIS IS THE BREAKAGE
-    std::array<geoRef, 255>    _featureToMaps;        // NEEDS TO BE SAME AS NUMBER IN NAVIGATION ARRAY
+        static const int maxFeatures = 255;
+        std::array<geoRef, maxFeatures>    _featureToMaps;
 
     public:
         MapScreen_T4(TFT_eSPI& tft, LilyGo_AMOLED& lilygoT3);

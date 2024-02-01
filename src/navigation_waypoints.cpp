@@ -1,13 +1,14 @@
 #include "navigation_waypoints.h"
 
-const uint8_t waypointCount = 113;
-uint8_t getWaypointsCount() { return waypointCount; }
 
-const uint8_t exitWaypointIndicesSize = 10;
-std::array<int,10> exitWaypointIndices;
+const uint8_t exitWaypointIndicesSize = 10;     
+std::array<int,exitWaypointIndicesSize> exitWaypointIndices;
 int exitWaypointCount=0;
 
-const std::array<navigationWaypoint,waypointCount> waypoints = 
+const uint8_t waypointCount = 113;           
+uint8_t getWaypointsCount() { return waypointCount; }
+
+const std::array<navigationWaypoint,waypointCount> waypoints =      // MBJ REFACTOR - HOW TO GET RID OF WAYPOINTCOUNT HERE? c.f. C array x[]
 {{
   [0] = { ._label =  "03N Scimitar Car 5.5m", ._lat = 51.460347, ._long = -0.5489195},
   [1] = { ._label =  "04N Spitfire Car 6m", ._lat = 51.4601028571429, ._long = -0.54883835},

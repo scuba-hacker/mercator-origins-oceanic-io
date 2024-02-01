@@ -6,7 +6,7 @@
 
 #include "LilyGo_amoled.h"
 
-const geo_map MapScreen_T4::s_maps[] = 
+const geo_map MapScreen_T4::s_maps[] =    // MBJ REFACTOR to std::array also c.f. C array - no specifying of array length
 //const std::array<geo_map> s_maps =
 {
   [0] = { .mapData = &lily_wraysbury_N, .label="North", .backColour=TFT_BLACK, .backText="", .surveyMap=false, .swapBytes=false, .mapLongitudeLeft = -0.5503, .mapLongitudeRight = -0.5473, .mapLatitudeBottom = 51.4613},
@@ -19,8 +19,7 @@ const geo_map MapScreen_T4::s_maps[] =
   [7] = { .mapData = nullptr, .label="Sub",  .backColour=TFT_CYAN, .backText="Sub",.surveyMap=true, .swapBytes=false, .mapLongitudeLeft = -0.54931, .mapLongitudeRight = -0.54900, .mapLatitudeBottom = 51.4608}, // Sub area
 };
 
-//const MapScreen_ex::pixel MapScreen_T4::s_registrationPixels[MapScreen_T4::s_registrationPixelsSize] =
-const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> MapScreen_T4::s_registrationPixels
+const std::array<MapScreen_ex::pixel, MapScreen_T4::s_registrationPixelsSize> MapScreen_T4::s_registrationPixels     // MBJ REFACTOR - HOW TO GET RID OF s_registrationPixelsSize HERE? c.f. C array x[]
 {{
 [0]=  {  .x=o,     .y=o,     .colour=0xFF00},
 [1]=  {  .x=hX_t3-o,  .y=o,     .colour=0xFF00},
@@ -204,13 +203,13 @@ const geo_map* MapScreen_T4::getNextMapByPixelLocation(MapScreen_ex::pixel loc, 
   return nextMap;
 }
 
+// MBJ RECALCULATE pixel bounding box for canoe FOR T4 DISPLAY
 // This is the M5 canoe bounding box - needs updating for T4
 // BOUNDING BOX FOR CANOE M5: TOP-LEFT (62, 51) BOT-RIGHT (79, 71) 
-const MapScreen_ex::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesCanoe[] = {{{62,51},{79,71},{*MapScreen_T4::_NMap}}};               // MBJ REFACTOR to std::array
-
+const std::array<MapScreen_ex::MapScreen_ex::BoundingBox, 1> MapScreen_T4::boundingBoxesCanoe = {{{{62,51},{79,71},{*MapScreen_T4::_NMap}}}};
 bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const
 {
-  return false;   // temp T4
+  return false; // temp - remove when new bounding box pixels are coded above
 
   for (auto& box : boundingBoxesCanoe)
   {
@@ -221,17 +220,17 @@ bool MapScreen_T4::isPixelInCanoeZone(const MapScreen_ex::pixel loc, const geo_m
   return false;
 }
 
-// This is the M5 sub bounding box - needs updating for T4
+// MBJ RECALCULATE pixel bounding box for sub FOR T4 DISPLAY
 // BOUNDING BOX FOR SUB M5 North Map: TOP-LEFT (48, 168) BOT-RIGHT (65, 191)
 // BOUNDING BOX FOR SUB M5 Cafe Jetty Map: TOP-LEFT (12, 53) BOT-RIGHT (31, 72)
-const MapScreen_T4::MapScreen_ex::BoundingBox MapScreen_T4::boundingBoxesSub[] = {               // MBJ REFACTOR to std::array
+const std::array<MapScreen_ex::MapScreen_ex::BoundingBox, 2> MapScreen_T4::boundingBoxesSub = { {
                   {{48,168},{65,191},{*MapScreen_T4::_NMap}},
                   {{12,53},{31,72},{*MapScreen_T4::_NMap/*_cafeJettyMap*/}}
-                  };
+                  } };
 
 bool MapScreen_T4::isPixelInSubZone(const MapScreen_ex::pixel loc, const geo_map& thisMap) const
 {
-  return false;   // temp T4
+  return false;  // temp - remove when new bounding box pixels are coded above
 
   for (auto& box : boundingBoxesSub)
   {
