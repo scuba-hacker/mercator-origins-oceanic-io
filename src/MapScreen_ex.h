@@ -179,6 +179,7 @@ class MapScreen_ex
     static const uint8_t s_diverSpriteRadius;
     static const uint8_t s_featureSpriteRadius;
     static const uint16_t s_diverSpriteColour;
+    static const uint16_t s_diverHeadingColour
     static const uint16_t s_featureSpriteColour;
     static const bool     s_useSpriteForFeatures = true;
 
