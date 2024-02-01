@@ -125,7 +125,7 @@ void MapScreen_T4::writeMapTitleToSprite(TFT_eSprite& sprite, const geo_map& map
     {
       sprite.setCursor(5,30);
       sprite.setTextSize(3);
-      sprite.setTextColor(TFT_BLACK, map.backColour);
+      sprite.setTextColor(TFT_BLUE, map.backColour);
       sprite.println(map.backText);
     }
 }

@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <memory>
 
+#include "fonts/NotoSansBold36.h"
+
 #include "navigation_waypoints.h"
 
 const uint16_t MapScreen_ex::s_diverSpriteColour = TFT_BLUE;
@@ -68,9 +70,11 @@ void MapScreen_ex::initSprites()
 {
   _cleanMapAndFeaturesSprite->setColorDepth(16);
   _cleanMapAndFeaturesSprite->createSprite(getTFTWidth(),getTFTHeight());
+  _cleanMapAndFeaturesSprite->loadFont(NotoSansBold36);
 
   _compositedScreenSprite->setColorDepth(16);
   _compositedScreenSprite->createSprite(getTFTWidth(),getTFTHeight());
+  _compositedScreenSprite->loadFont(NotoSansBold36);
 
   _diverSprite->setColorDepth(16);
   _diverSprite->createSprite(s_diverSpriteRadius*2,s_diverSpriteRadius*2);
