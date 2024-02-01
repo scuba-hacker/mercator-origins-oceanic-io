@@ -181,6 +181,8 @@ class MapScreen_ex
     static const uint16_t s_diverSpriteColour;
     static const uint16_t s_diverHeadingColour
     static const uint16_t s_featureSpriteColour;
+    static const uint16_t s_targetSpriteColour = TFT_RED;
+    static const uint16_t s_lastTargetSpriteColour = TFT_BLUE;
     static const bool     s_useSpriteForFeatures = true;
 
     static const int directionLineColour;
