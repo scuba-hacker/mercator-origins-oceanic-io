@@ -98,25 +98,15 @@ uint32_t lastSecondButtonPressLasted = 0;
 bool primaryButtonIndicatorNeedsClearing = false;
 bool secondButtonIndicatorNeedsClearing = false;
 
-/*
-extern const unsigned short lily_wraysbury_all[];
-extern const unsigned short lily_wraysbury_N[];
-extern const unsigned short lily_wraysbury_SE[];
-extern const unsigned short lily_wraysbury_S[];
-extern const unsigned short lily_wraysbury_SW[];
-extern const unsigned short lily_wraysbury_W[];
-*/
-
 TFT_eSPI tft = TFT_eSPI();
 LilyGo_AMOLED amoled;
 std::unique_ptr<MapScreen_T4> mapScreen;
 
 std::shared_ptr<TFT_eSprite> compositeSprite;
 
-double latitude=51.460015;
+double latitude = 51.4605855;    // lightning boat
 double longitude=-0.548316;
 double heading=0.0;
-
 
 #define USB_SERIAL Serial
 
@@ -917,7 +907,7 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
   compositeSprite->setCursor(0, 30);
   compositeSprite->fillSprite(TFT_BLUE);
   compositeSprite->setTextSize(2);
-  mapScreen->copyCompositeSpriteToDisplay();
+  compositeSprite->setTextColor(TFT_WHITE);
 
   while (repeatScanAttempts-- &&
          (WiFi.status() != WL_CONNECTED ||
