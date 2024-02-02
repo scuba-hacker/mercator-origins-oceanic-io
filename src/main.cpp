@@ -1,5 +1,9 @@
 #include <Arduino.h>
-#include <Wire.h>
+//#include <Wire.h>
+
+#include <MapScreen_T4.h>
+#include <LilyGo_AMOLED.h>
+#include <TFT_eSPI.h>
 
 #include <esp_now.h>
 #include <WiFi.h>
@@ -10,7 +14,7 @@
 //#include <fonts/Final_Frontier_28.h>
 //#include <fonts/NotoSansMonoSCB20.h>
 
-#include "utility/Button.h"
+#include "Button.h"
 
 // TODO: create Oceanic banner
 //#define MERCATOR_ELEGANTOTA_TIGER_BANNER
@@ -24,12 +28,7 @@
 #include <memory.h>
 #include <time.h>
 
-#include "MapScreen_T4.h"
 
-#include "LilyGo_amoled.h"
-#include "LilyGo_Display.h"
-
-#include <TFT_eSPI.h>
 
 // rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
 #include "mercator_secrets.c"
@@ -102,7 +101,7 @@ TFT_eSPI tft = TFT_eSPI();
 LilyGo_AMOLED amoled;
 std::unique_ptr<MapScreen_T4> mapScreen;
 
-std::shared_ptr<TFT_eSprite> compositeSprite;
+TFT_eSprite* compositeSprite = nullptr;
 
 double latitude = 51.4605855;    // lightning boat
 double longitude=-0.548316;
@@ -212,11 +211,10 @@ void setup()
   }
   dumpHeapUsage("Setup(): after USB serial port started ");
 
-
   amoled.setBrightness(defaultBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
 
-  compositeSprite = mapScreen->getCompositeSprite();
+  compositeSprite = &mapScreen->getCompositeSprite();
   compositeSprite->loadFont(NotoSansBold36);     // use smooth font    -D SMOOTH_FONT=1
 
   recoveryScreen();

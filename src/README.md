@@ -1,2 +1,2 @@
-# M5-mapscreen
- MapScreen class for Mercator Tiger
+# mercator-oceanic-io
+ MapScreen class for Mercator Oceanic
