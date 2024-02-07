@@ -67,8 +67,8 @@ QueueHandle_t msgsReceivedQueue;
 
 bool ESPNowActive = false;
 
-const uint8_t BUTTON_REED_TOP_PIN=41;             // UPDATE FOR T4 - rename REED
-const uint8_t BUTTON_REED_SIDE_PIN=42;             // UPDATE FOR T4 - rename REED
+const uint8_t BUTTON_REED_TOP_PIN=38;             // UPDATE FOR T4 - rename REED
+const uint8_t BUTTON_REED_SIDE_PIN=48;             // UPDATE FOR T4 - rename REED
 const uint8_t BUTTON_BOOT=0;
 const uint32_t MERCATOR_DEBOUNCE_MS=10;    
 
@@ -103,8 +103,11 @@ std::unique_ptr<MapScreen_T4> mapScreen;
 
 TFT_eSprite* compositeSprite = nullptr;
 
-double latitude = 51.4605855;    // lightning boat
-double longitude=-0.548316;
+const double startLatitude = 51.4605855;    // lightning boat
+const double startLongitude=-0.548316;
+
+double latitude  = startLatitude;    // lightning boat
+double longitude = startLongitude;
 double heading=0.0;
 
 #define USB_SERIAL Serial
@@ -164,18 +167,33 @@ void resetCompositeSpriteCursor()
   compositeSprite->setCursor(0,30);
 }
 
-bool checkBootButton()
+bool checkButtons()
 {
   bool result=false;
 
   BootButton.read();
-
-  if (BootButton.wasReleasefor(100)) // switch to OTA mode
+  ReedSwitchGoProTop.read();
+  ReedSwitchGoProSide.read();
+/*
+  if (ReedSwitchGoProSide.isPressed() && ReedSwitchGoProTop.isPressed())
+  {
+    compositeSprite->fillSprite(TFT_RED);
+    mapScreen->copyCompositeSpriteToDisplay();
+    delay(3000);
+  }
+*/
+  if (BootButton.wasReleasefor(100) || ReedSwitchGoProTop.wasReleasefor(3000)) // switch to OTA mode
   {    
+    amoled.setBrightness(50);
     switchToPersistentOTAMode();    // never returns - loops waiting for OTA
     result = true;
   }
 
+  if (ReedSwitchGoProSide.wasReleasefor(3000))
+  {
+    ESP.restart();
+  }
+  
   return result;
 }
 
@@ -192,13 +210,16 @@ void recoveryScreen()
   const uint32_t end = millis() + 5000;
   while (end > millis())
   {
-    checkBootButton();
+    checkReedSwitches();
     delay(20);
   }
 }
 
 void setup()
 {
+  p_primaryButton = &ReedSwitchGoProTop;
+  p_secondButton = &ReedSwitchGoProSide;
+
   dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
   dumpHeapUsage("Setup(): after amoled.begin() ");
@@ -220,9 +241,6 @@ void setup()
   recoveryScreen();
 
   msgsReceivedQueue = xQueueCreate(queueLength,sizeof(rxQueueItemBuffer));
-
-  p_primaryButton = &ReedSwitchGoProTop;
-  p_secondButton = &ReedSwitchGoProSide;
 
   if (enableOTAServerAtStartup)
   {
@@ -330,7 +348,7 @@ bool checkReedSwitches()
   uint32_t activationTime=0;
     
   updateButtonsAndBuzzer();
-
+/*
   int pressedPrimaryButtonX, pressedPrimaryButtonY, pressedSecondButtonX, pressedSecondButtonY;
 
   pressedPrimaryButtonX = 110;
@@ -381,12 +399,16 @@ bool checkReedSwitches()
       compositeSprite->print(" ");
     }
   }
+*/
 
   if (p_primaryButton->wasReleasefor(100)) // no function
   {
     activationTime = lastPrimaryButtonPressLasted;
     reedSwitchTop = true;
     changeMade = true;
+
+    latitude = startLatitude;
+    longitude = startLongitude;
   }
 
   // press second button for 10 seconds to restart
@@ -400,7 +422,8 @@ bool checkReedSwitches()
       activationTime = lastSecondButtonPressLasted;
       reedSwitchTop = false;
 
-      changeMade = disableESPNowandEnableOTA();
+      switchToPersistentOTAMode();
+      changeMade = true;
 //      const bool refreshCurrentScreen=true;
   //    cycleDisplays(refreshCurrentScreen);
   }
@@ -423,14 +446,14 @@ bool checkReedSwitches()
     mapScreen->cycleZoom(); changeMade = true;
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
-  
+  /*
   if (activationTime > 0)
   {
     if (writeLogToSerial)
       USB_SERIAL.println("Reed Activated...");
 
     publishToMakoReedActivation(reedSwitchTop, activationTime);
-  }
+  }*/
   
   return changeMade;
 }
@@ -469,6 +492,14 @@ void publishToMakoReedActivation(const bool topReed, const uint32_t ms)
   }
 }
 
+uint32_t nextBattUpdateTime = 0;
+uint32_t battUpdateCadence = 10000;
+
+bool isMakoMessage(char m)
+{
+  return (m == 'X' || m == 'c');
+}
+
 void loop()
 { 
   // do not process queued messages if ota is active, mapscreen is deleted and espnow will be shutdown anyway.
@@ -476,12 +507,13 @@ void loop()
   {
     if (xQueueReceive(msgsReceivedQueue,&(rxQueueItemBuffer),(TickType_t)0))
     {
-      if (!isPairedWithMako)    // only pair with Mako once first message received from Mako.
+      char messageType = rxQueueItemBuffer[0];
+      if (isMakoMessage(messageType) && !isPairedWithMako) // only pair with Mako once first message received from Mako.
       {
         pairWithMako();
       }
 
-      switch(rxQueueItemBuffer[0])
+      switch (messageType)
       {
         case 'X':   // location, heading and current Target info.
         {
@@ -548,6 +580,17 @@ void loop()
         }
       }
     }
+
+    if (!isPairedWithMako && millis() > nextBattUpdateTime)
+    {
+      nextBattUpdateTime += battUpdateCadence;
+
+      compositeSprite->fillSprite(TFT_BLUE);
+      resetCompositeSpriteCursor();
+      compositeSprite->println("ESP Now Initialised\nAwait Mako ESP Now Message");
+      compositeSprite->printf("Batt Volts: %.2f\n", static_cast<float>(amoled.getBattVoltage())/1000.0);
+      mapScreen->copyCompositeSpriteToDisplay();
+    }
   }
 
   // for dev without buttons attached to device.
@@ -557,7 +600,7 @@ void loop()
     switchToPersistentOTAMode();
   }
 
-  checkBootButton();
+  checkReedSwitches();
 }
 
 void switchToPersistentOTAMode()
@@ -568,8 +611,32 @@ void switchToPersistentOTAMode()
     compositeSprite->setTextColor(TFT_BLUE);
     compositeSprite->println("Ready for OTA update");
     mapScreen->copyCompositeSpriteToDisplay();
+
+    String status, prevStatus;
+    int line=0;
     while (true)
-      delay(100);
+    {
+      String status = amoled.getChargeStatusString();
+
+      if (status != prevStatus)
+      {
+        uint16_t vbus = amoled.getVbusVoltage();
+        uint16_t vbatt = amoled.getBattVoltage();
+        uint16_t vsys = amoled.getSystemVoltage();
+
+        compositeSprite->printf("%s %hu %hu %hu\n", status.c_str(),vbus,vbatt,vsys);
+        mapScreen->copyCompositeSpriteToDisplay();
+        if (line++ == 7)
+        {
+          line = 0;
+          compositeSprite->fillSprite(TFT_GREEN);
+          compositeSprite->setCursor(0,30);
+        }
+        prevStatus = status;
+        delay(500);
+      }
+      checkReedSwitches();
+    }
 }
 
 void testMapDisplay()
@@ -584,6 +651,7 @@ void updateButtonsAndBuzzer()
 {
   p_primaryButton->read();
   p_secondButton->read();
+  BootButton.read();
 
   if (p_primaryButton->isPressed())
   {
@@ -817,6 +885,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
     compositeSprite->print(".");
     mapScreen->copyCompositeSpriteToDisplay();
     delay(500);
+    checkReedSwitches();
   }
   compositeSprite->print("\n");
 
@@ -923,7 +992,7 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
   
     int connectToFoundNetworkAttempts = 3;
     const int repeatDelay = 1000;
-  
+      
     if (strcmp(network,ssid_1) == 0)
     {
       while (connectToFoundNetworkAttempts-- && !setupOTAWebServer(ssid_1, password_1, label_1, timeout_1, wifiOnly))
@@ -940,6 +1009,7 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
         delay(repeatDelay);
     }
     
+    checkReedSwitches();
     delay(1000);
   }
 
@@ -1085,7 +1155,8 @@ bool pairWithPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, int max
       compositeSprite->printf("%s Pair fail\n",peerSSIDPrefix);
       compositeSprite->setTextColor(TFT_WHITE,TFT_BLACK);
     }
-  mapScreen->copyCompositeSpriteToDisplay();
+    mapScreen->copyCompositeSpriteToDisplay();
+    checkReedSwitches();  
   }
 
   delay(1000);
