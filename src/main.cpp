@@ -9,12 +9,40 @@
 #include <WiFi.h>
 #include <freertos/queue.h>
 #include <memory>
+#include <time.h>
+#include <queue>
+
+
 
 #include <fonts/NotoSansBold36.h>
 //#include <fonts/Final_Frontier_28.h>
 //#include <fonts/NotoSansMonoSCB20.h>
 
+// rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
+#include "mercator_secrets.c"
+
 #include "Button.h"
+
+bool writeLogToSerial=true;
+bool testPreCannedLatLong=false;
+bool diveTrackTest = false;
+bool diveTraceTest = false;
+bool enableOTATimer=false;
+uint32_t otaTimerExpired = 60000;
+
+const bool enableOTAServerAtStartup=false;
+const bool enableESPNow = !enableOTAServerAtStartup;
+
+#include "dive_track.h"
+extern const location diveTrack[];
+extern "C" int getSizeOfDiveTrack();
+
+extern const char track_and_trace_html_content[];
+
+
+int trackIndex=0;
+int trackLength=getSizeOfDiveTrack();
+void cycleTrackIndex();
 
 // TODO: create Oceanic banner
 //#define MERCATOR_ELEGANTOTA_TIGER_BANNER
@@ -23,23 +51,11 @@
 #include <Update.h>             // OTA updates
 #include <AsyncTCP.h>           // OTA updates
 #include <ESPAsyncWebServer.h>  // OTA updates
-#include <AsyncElegantOTA.h>    // OTA updates
+#include <MercatorElegantOta.h>    // OTA updates
 
-#include <memory.h>
-#include <time.h>
-
+MercatorElegantOtaClass MercatorElegantOta;
 
 
-// rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
-#include "mercator_secrets.c"
-
-bool writeLogToSerial=true;
-bool testPreCannedLatLong=true;
-bool enableOTATimer=false;
-uint32_t otaTimerExpired = 60000;
-
-const bool enableOTAServerAtStartup=false;
-const bool enableESPNow = !enableOTAServerAtStartup;
 
 const String ssid_not_connected = "-";
 String ssid_connected;
@@ -63,7 +79,7 @@ esp_err_t ESPNowSendResult=(esp_err_t)RESET_ESPNOW_SEND_RESULT;
 char mako_espnow_buffer[256];               // MBJ REFACTOR  
 char currentTime[9];               // MBJ REFACTOR  
 
-QueueHandle_t msgsReceivedQueue;
+QueueHandle_t msgsESPNowReceivedQueue=nullptr;
 
 bool ESPNowActive = false;
 
@@ -110,15 +126,27 @@ double latitude  = startLatitude;    // lightning boat
 double longitude = startLongitude;
 double heading=0.0;
 
+double latitudeDelta = 0.0;
+double longitudeDelta = 0.0;
+
+int otaScreenBackColour = TFT_GREEN;
+int otaScreenForeColour = TFT_BLUE;
+int espScanBackColour = TFT_PURPLE;
+int espScanForeColour = TFT_WHITE;
+int wifiScanBackColour = TFT_CYAN;
+int wifiScanForeColour = TFT_BLUE;
+
 #define USB_SERIAL Serial
 
 const int defaultBrightness = 255;
 
-char rxQueueItemBuffer[256];               // MBJ REFACTOR  
-const uint8_t queueLength=4;
+char rxQueueESPNowItemBuffer[256];
+const uint8_t queueESPNowLength=10;
 
-char currentTarget[128];               // MBJ REFACTOR  
-char previousTarget[128];               // MBJ REFACTOR  
+std::queue<std::string> httpQueue;
+
+char currentTarget[128];
+char previousTarget[128];
 bool refreshTargetShown = false;
 
 bool checkReedSwitches();
@@ -160,7 +188,7 @@ void dumpHeapUsage(const char* msg)
 
 void testMapDisplay();
 bool disableESPNowandEnableOTA();
-void switchToPersistentOTAMode();
+void switchToPersistentOTAMode(bool clearScreen);
 
 void resetCompositeSpriteCursor()
 {
@@ -185,7 +213,7 @@ bool checkButtons()
   if (BootButton.wasReleasefor(100) || ReedSwitchGoProTop.wasReleasefor(3000)) // switch to OTA mode
   {    
     amoled.setBrightness(50);
-    switchToPersistentOTAMode();    // never returns - loops waiting for OTA
+    switchToPersistentOTAMode(true);    // never returns - loops waiting for OTA
     result = true;
   }
 
@@ -217,6 +245,8 @@ void recoveryScreen()
 
 void setup()
 {
+  char c = track_and_trace_html_content[0];
+
   p_primaryButton = &ReedSwitchGoProTop;
   p_secondButton = &ReedSwitchGoProSide;
 
@@ -240,7 +270,7 @@ void setup()
 
   recoveryScreen();
 
-  msgsReceivedQueue = xQueueCreate(queueLength,sizeof(rxQueueItemBuffer));
+  msgsESPNowReceivedQueue = xQueueCreate(queueESPNowLength,sizeof(rxQueueESPNowItemBuffer));
 
   if (enableOTAServerAtStartup)
   {
@@ -253,14 +283,14 @@ void setup()
     connectToWiFiAndInitOTA(wifiOnly,maxWifiScanAttempts);
   }
 
-  if (enableESPNow && msgsReceivedQueue)
+  if (!otaActive && enableESPNow && msgsESPNowReceivedQueue)
   {
     configAndStartUpESPNow();
-    compositeSprite->fillSprite(TFT_BLUE);
+    compositeSprite->fillSprite(espScanBackColour);
     resetCompositeSpriteCursor();
+    compositeSprite->setTextColor(espScanForeColour, espScanBackColour);
     compositeSprite->println("ESP Now Initialised\nAwait Mako ESP Now Message");
     mapScreen->copyCompositeSpriteToDisplay();
-    delay(4000);
     // defer pairing with mako for sending messages to mako until first message received from mako.
   }
 
@@ -271,8 +301,8 @@ bool pairWithMako()
 {
   if (ESPNowActive && !isPairedWithMako)
   {
-    compositeSprite->fillSprite(TFT_BLUE);
-    compositeSprite->setTextColor(TFT_WHITE,TFT_BLACK);
+    compositeSprite->fillSprite(espScanBackColour);
+    compositeSprite->setTextColor(espScanForeColour,espScanBackColour);
     resetCompositeSpriteCursor();
     mapScreen->copyCompositeSpriteToDisplay();
 
@@ -330,7 +360,7 @@ bool disableESPNowandEnableOTA()
 
   // enable OTA
   const bool wifiOnly = false;
-  compositeSprite->fillSprite(TFT_GREEN);
+  compositeSprite->fillSprite(otaScreenBackColour);
   resetCompositeSpriteCursor();
   compositeSprite->println("Start\n  OTA\n\n");
   delay(1000);
@@ -401,34 +431,32 @@ bool checkReedSwitches()
   }
 */
 
-  if (p_primaryButton->wasReleasefor(100)) // no function
+  if (p_primaryButton->wasReleasefor(100) && msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
   {
     activationTime = lastPrimaryButtonPressLasted;
     reedSwitchTop = true;
     changeMade = true;
-
-    latitude = startLatitude;
-    longitude = startLongitude;
+    switchToPersistentOTAMode(true);
   }
 
   // press second button for 10 seconds to restart
   // press second button for 5 seconds to attempt WiFi connect and enable OTA
-  if (p_secondButton->wasReleasefor(10000))
+  if (p_secondButton->wasReleasefor(5000))
   { 
      esp_restart();
   }
-  else if (p_secondButton->wasReleasefor(5000))
+  else if (p_secondButton->wasReleasefor(2000))
   { 
       activationTime = lastSecondButtonPressLasted;
       reedSwitchTop = false;
 
-      switchToPersistentOTAMode();
+      switchToPersistentOTAMode(false);
       changeMade = true;
 //      const bool refreshCurrentScreen=true;
   //    cycleDisplays(refreshCurrentScreen);
   }
   // press second button for 1 second...
-  else if (p_secondButton->wasReleasefor(1000))
+  else if (p_secondButton->wasReleasefor(500))
   {
     activationTime = lastSecondButtonPressLasted;
     reedSwitchTop = false;
@@ -503,11 +531,11 @@ bool isMakoMessage(char m)
 void loop()
 { 
   // do not process queued messages if ota is active, mapscreen is deleted and espnow will be shutdown anyway.
-  if (msgsReceivedQueue && !otaActive)
+  if (msgsESPNowReceivedQueue && !otaActive)
   {
-    if (xQueueReceive(msgsReceivedQueue,&(rxQueueItemBuffer),(TickType_t)0))
+    if (xQueueReceive(msgsESPNowReceivedQueue,&(rxQueueESPNowItemBuffer),(TickType_t)0))
     {
-      char messageType = rxQueueItemBuffer[0];
+      char messageType = rxQueueESPNowItemBuffer[0];
       if (isMakoMessage(messageType) && !isPairedWithMako) // only pair with Mako once first message received from Mako.
       {
         pairWithMako();
@@ -530,15 +558,15 @@ void loop()
           double old_longitude = longitude;
           double old_heading = heading;
 
-          strncpy(targetCode,rxQueueItemBuffer + targetCodeOffset,sizeof(targetCode));
-          memcpy(&latitude,  rxQueueItemBuffer + latitudeOffset,  sizeof(double));
-          memcpy(&longitude, rxQueueItemBuffer + longitudeOffset, sizeof(double));
-          memcpy(&heading,   rxQueueItemBuffer + headingOffset, sizeof(double));
+          strncpy(targetCode,rxQueueESPNowItemBuffer + targetCodeOffset,sizeof(targetCode));
+          memcpy(&latitude,  rxQueueESPNowItemBuffer + latitudeOffset,  sizeof(double));
+          memcpy(&longitude, rxQueueESPNowItemBuffer + longitudeOffset, sizeof(double));
+          memcpy(&heading,   rxQueueESPNowItemBuffer + headingOffset, sizeof(double));
 
-          if (strcmp(rxQueueItemBuffer+currentTargetOffset,currentTarget) != 0)
+          if (strcmp(rxQueueESPNowItemBuffer+currentTargetOffset,currentTarget) != 0)
           {
             strncpy(previousTarget,currentTarget,sizeof(previousTarget));
-            strncpy(currentTarget,rxQueueItemBuffer+currentTargetOffset,sizeof(currentTarget));
+            strncpy(currentTarget,rxQueueESPNowItemBuffer+currentTargetOffset,sizeof(currentTarget));
             refreshTargetShown = true;
           }
 
@@ -565,10 +593,10 @@ void loop()
 
         case 'c':   // current target
         {
-          if (strcmp(rxQueueItemBuffer+1,currentTarget) != 0)
+          if (strcmp(rxQueueESPNowItemBuffer+1,currentTarget) != 0)
           {
             strncpy(previousTarget,currentTarget,sizeof(previousTarget));
-            strncpy(currentTarget,rxQueueItemBuffer+1,sizeof(currentTarget));
+            strncpy(currentTarget,rxQueueESPNowItemBuffer+1,sizeof(currentTarget));
             refreshTargetShown = true;
           }
           break;
@@ -585,10 +613,11 @@ void loop()
     {
       nextBattUpdateTime += battUpdateCadence;
 
-      compositeSprite->fillSprite(TFT_BLUE);
+      compositeSprite->fillSprite(espScanBackColour);
       resetCompositeSpriteCursor();
+      compositeSprite->setTextColor(espScanForeColour,espScanBackColour);
       compositeSprite->println("ESP Now Initialised\nAwait Mako ESP Now Message");
-      compositeSprite->printf("Batt Volts: %.2f\n", static_cast<float>(amoled.getBattVoltage())/1000.0);
+      compositeSprite->printf("vbatt: %.2f\n", static_cast<float>(amoled.getBattVoltage())/1000.0);
       mapScreen->copyCompositeSpriteToDisplay();
     }
   }
@@ -597,24 +626,164 @@ void loop()
   if (enableOTATimer && otaTimerExpired < millis())
   {
     USB_SERIAL.println("disable ESP Now, enable OTA");
-    switchToPersistentOTAMode();
+    switchToPersistentOTAMode(true);
   }
 
   checkReedSwitches();
+
+  bool refreshMap = false;
+
+  if (!httpQueue.empty())
+  {
+    std::string str = httpQueue.back();
+    httpQueue.pop();
+    if (str == std::string("track") || str == std::string("trackButton"))
+    {
+      // disable espnow
+      diveTrackTest = true;
+      diveTraceTest = false;
+      latitudeDelta = 0;
+      longitudeDelta = 0;
+    }
+    else if (str == std::string("trace") || str == std::string("traceButton"))
+    {
+      latitude=startLatitude;
+      longitude=startLongitude;
+      diveTrackTest = false;
+      diveTraceTest = true;
+      latitudeDelta = 0;
+      longitudeDelta = 0;
+      refreshMap = true;
+    }
+    else if (str == std::string("u") || str == std::string("upButton"))
+    {
+      latitudeDelta=0.00002;
+      longitudeDelta=0;
+      diveTraceTest = true;
+    }
+    else if (str == std::string("d") || str == std::string("downButton"))
+    {
+      latitudeDelta=-0.00002;
+      longitudeDelta=0;
+      diveTrackTest = false;
+      diveTraceTest = true;
+    }
+    else if (str == std::string("l") || str == std::string("leftButton"))
+    {
+      latitudeDelta=0;
+      longitudeDelta=-0.00002;
+      diveTrackTest = false;
+      diveTraceTest = true;
+    }
+    else if (str == std::string("r") || str == std::string("rightButton"))
+    {
+      latitudeDelta=0;
+      longitudeDelta=0.00002;
+      diveTrackTest = false;
+      diveTraceTest = true;
+    }
+    else if (str == std::string("reset") || str == std::string("resetButton"))
+    {
+      latitude=startLatitude;
+      longitude=startLongitude;
+      diveTrackTest = false;
+      refreshMap = true;
+    }
+    else if (str == std::string("stop") || str == std::string("stopButton"))
+    {
+      latitudeDelta=0;
+      longitudeDelta=0;
+      diveTrackTest = false;
+    }
+    else if (str == std::string("allButton"))
+    {
+      mapScreen->setAllLakeShown(true);
+      refreshMap = true;
+    }
+    else if (str == std::string("x1Button"))
+    {
+      mapScreen->setZoom(1);   // 
+      refreshMap = true;
+    }
+    else if (str == std::string("x2Button"))
+    {
+      mapScreen->setZoom(2);   // 
+      refreshMap = true;
+    }
+    else if (str == std::string("x3Button"))
+    {
+      mapScreen->setZoom(3);   // 
+      refreshMap = true;
+    }
+    else if (str == std::string("x4Button"))
+    {
+      mapScreen->setZoom(4);   // 
+      refreshMap = true;
+    }
+    else if (str == std::string("dim"))
+    {
+      amoled.setBrightness(10);
+    }
+    else if (str == std::string("bright"))
+    {
+      amoled.setBrightness(255);
+    }
+  }
+
+  if (diveTrackTest)
+  {
+    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h);
+    cycleTrackIndex();
+  }
+
+  if (diveTraceTest)
+  {
+    if (latitudeDelta != 0 || longitudeDelta != 0)
+    {
+      latitude+=latitudeDelta;
+      longitude+=longitudeDelta;
+      mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
+
+      delay(50);
+//      uint32_t now = millis();
+//      while (millis() < now + 100)
+//        yield();
+    }
+    else if (refreshMap)
+    {
+      mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
+    }
+    else
+    {
+      delay (50);
+    }
+//       yield();
+
+  }
 }
 
-void switchToPersistentOTAMode()
+void cycleTrackIndex()
+{
+  trackIndex = (trackIndex + 1) % trackLength;
+}
+
+void switchToPersistentOTAMode(bool clearScreen)
 {
     disableESPNowandEnableOTA();
-    compositeSprite->fillSprite(TFT_GREEN);
-    resetCompositeSpriteCursor();
-    compositeSprite->setTextColor(TFT_BLUE);
-    compositeSprite->println("Ready for OTA update");
+    if (clearScreen)
+    {
+      compositeSprite->fillSprite(wifiScanBackColour);
+      resetCompositeSpriteCursor();
+      compositeSprite->setTextColor(wifiScanForeColour, wifiScanBackColour);
+    }
+    compositeSprite->println("Ready for OTA update\n");
     mapScreen->copyCompositeSpriteToDisplay();
 
+    uint32_t waitPeriod = 5000;
+    uint32_t end = millis()+waitPeriod;
     String status, prevStatus;
     int line=0;
-    while (true)
+    while (end < millis())
     {
       String status = amoled.getChargeStatusString();
 
@@ -624,12 +793,12 @@ void switchToPersistentOTAMode()
         uint16_t vbatt = amoled.getBattVoltage();
         uint16_t vsys = amoled.getSystemVoltage();
 
-        compositeSprite->printf("%s %hu %hu %hu\n", status.c_str(),vbus,vbatt,vsys);
+        compositeSprite->printf("%s\n\nvbus:  %.3f\nvbatt: %.3f\nvsys:   %.3f\n", status.c_str(),vbus/1000.0,vbatt/1000.0,vsys/1000.0);
         mapScreen->copyCompositeSpriteToDisplay();
         if (line++ == 7)
         {
           line = 0;
-          compositeSprite->fillSprite(TFT_GREEN);
+          compositeSprite->fillSprite(otaScreenBackColour);
           compositeSprite->setCursor(0,30);
         }
         prevStatus = status;
@@ -778,7 +947,7 @@ void OnESPNowDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len
     USB_SERIAL.printf("Last Packet Recv Length: %d\n",data_len);
   }
 
-  xQueueSend(msgsReceivedQueue, data, (TickType_t)0);  // don't block on enqueue, just drop if queue is full
+  xQueueSend(msgsESPNowReceivedQueue, data, (TickType_t)0);  // don't block on enqueue, just drop if queue is full
 }
 
 bool TeardownESPNow()
@@ -889,7 +1058,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
   }
   compositeSprite->print("\n");
 
-  delay(3000);
+  delay(100);
 
   if (WiFi.status() == WL_CONNECTED )
   {
@@ -908,10 +1077,10 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
       });
         
       if (writeLogToSerial)
-        USB_SERIAL.println("setupOTAWebServer: calling AsyncElegantOTA.begin");
+        USB_SERIAL.println("setupOTAWebServer: calling MercatorElegantOta.begin");
 
-      AsyncElegantOTA.setID(MERCATOR_OTA_DEVICE_LABEL);
-      AsyncElegantOTA.begin(&asyncWebServer);    // Start AsyncElegantOTA
+      MercatorElegantOta.setID(MERCATOR_OTA_DEVICE_LABEL);
+      MercatorElegantOta.begin(&httpQueue, &asyncWebServer);    // Start MercatorElegantOta
 
       if (writeLogToSerial)
         USB_SERIAL.println("setupOTAWebServer: calling asyncWebServer.begin");
@@ -930,7 +1099,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
       connected = true;
       otaActive = true;
     
-      delay(2000);
+      delay(1000);
 
       connected = true;
   
@@ -974,9 +1143,9 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
     return true;
 
   compositeSprite->setCursor(0, 30);
-  compositeSprite->fillSprite(TFT_BLUE);
+  compositeSprite->fillSprite(wifiScanBackColour);
   compositeSprite->setTextSize(2);
-  compositeSprite->setTextColor(TFT_WHITE);
+  compositeSprite->setTextColor(wifiScanForeColour,wifiScanBackColour);
 
   while (repeatScanAttempts-- &&
          (WiFi.status() != WL_CONNECTED ||
@@ -1144,16 +1313,16 @@ bool pairWithPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, int max
     if (result && peer.channel == ESPNOW_CHANNEL)
     { 
       isPaired = ESPNowManagePeer(peer);
-      compositeSprite->setTextColor(TFT_GREEN,TFT_BLACK);
+      compositeSprite->setTextColor(TFT_GREEN,espScanBackColour);
       compositeSprite->printf("%s Pair ok\n",peerSSIDPrefix);
-      compositeSprite->setTextColor(TFT_WHITE);
+      compositeSprite->setTextColor(espScanForeColour,espScanBackColour);
     }
     else
     {
       peer.channel = ESPNOW_NO_PEER_CHANNEL_FLAG;
-      compositeSprite->setTextColor(TFT_RED,TFT_BLACK);
+      compositeSprite->setTextColor(TFT_RED,espScanBackColour);
       compositeSprite->printf("%s Pair fail\n",peerSSIDPrefix);
-      compositeSprite->setTextColor(TFT_WHITE,TFT_BLACK);
+      compositeSprite->setTextColor(espScanForeColour,espScanBackColour);
     }
     mapScreen->copyCompositeSpriteToDisplay();
     checkReedSwitches();  
