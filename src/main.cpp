@@ -49,7 +49,7 @@ void cycleTrackIndex();
 #include <Update.h>             // OTA updates
 #include <AsyncTCP.h>           // OTA updates
 #include <ESPAsyncWebServer.h>  // OTA updates
-#include <MercatorElegantOta.h>    // OTA updates
+#include <MercatorElegantOTA.h>    // OTA updates
 
 MercatorElegantOtaClass MercatorElegantOta;
 
