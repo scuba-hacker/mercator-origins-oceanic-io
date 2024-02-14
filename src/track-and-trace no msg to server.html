@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directional Buttons Control</title>
+    <style>
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .button-active {
+            background-color: #2980b9 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="button" id="upButton">&#8593;</button><br>
+    <button class="button" id="leftButton">&#8592;</button>
+    <button class="button" id="rightButton">&#8594;</button><br>
+    <button class="button" id="downButton">&#8595;</button>
+</div>
+
+<div class="container">
+    <button class="button" id="trackButton">Track</button>
+    <button class="button" id="traceButton">Trace</button>
+</div>
+
+<script>
+    function activateButton(buttonId) {
+        var button = document.getElementById(buttonId);
+        button.classList.add("button-active");
+        setTimeout(function() {
+            button.classList.remove("button-active");
+        }, 100);
+    }
+
+    function simulateButtonClick(buttonId) {
+        activateButton(buttonId);
+        // Implement actions corresponding to button click
+        switch (buttonId) {
+            case "upButton":
+                console.log("Moving Up");
+                break;
+            case "leftButton":
+                console.log("Moving Left");
+                break;
+            case "rightButton":
+                console.log("Moving Right");
+                break;
+            case "downButton":
+                console.log("Moving Down");
+                break;
+            case "trackButton":
+                console.log("Track action");
+                break;
+            case "traceButton":
+                console.log("Trace action");
+                break;
+        }
+    }
+
+    document.getElementById("upButton").addEventListener("click", function() {
+        simulateButtonClick("upButton");
+    });
+
+    document.getElementById("leftButton").addEventListener("click", function() {
+        simulateButtonClick("leftButton");
+    });
+
+    document.getElementById("rightButton").addEventListener("click", function() {
+        simulateButtonClick("rightButton");
+    });
+
+    document.getElementById("downButton").addEventListener("click", function() {
+        simulateButtonClick("downButton");
+    });
+
+    document.getElementById("trackButton").addEventListener("click", function() {
+        simulateButtonClick("trackButton");
+    });
+
+    document.getElementById("traceButton").addEventListener("click", function() {
+        simulateButtonClick("traceButton");
+    });
+
+</script>
+
+</body>
+</html>

@@ -12,11 +12,9 @@
 #include <time.h>
 #include <queue>
 
-
-
 #include <fonts/NotoSansBold36.h>
 //#include <fonts/Final_Frontier_28.h>
-//#include <fonts/NotoSansMonoSCB20.h>
+#include <fonts/NotoSansMonoSCB20.h>
 
 // rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
 #include "mercator_secrets.c"
@@ -235,6 +233,8 @@ void recoveryScreen()
     mapScreen->copyCompositeSpriteToDisplay();
   }
 
+  compositeSprite->printf("Press Boot Button\nfor Recovery OTA");
+
   const uint32_t end = millis() + 5000;
   while (end > millis())
   {
@@ -431,16 +431,39 @@ bool checkReedSwitches()
   }
 */
 
-  if (p_primaryButton->wasReleasefor(100) && msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
+  // press primary button for 0.5 second to toggle features shown
+  if (p_primaryButton->wasReleasefor(500))
   {
-    activationTime = lastPrimaryButtonPressLasted;
+    activationTime = lastSecondButtonPressLasted;
     reedSwitchTop = true;
     changeMade = true;
-    switchToPersistentOTAMode(true);
+
+    mapScreen->toggleDrawAllFeatures();
+    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
+  }
+  // short press primary button cycle zoom if not at startup, otherwise activate OTA.
+  else if (p_primaryButton->wasReleasefor(100))
+  {
+    if (msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
+    {
+      activationTime = lastPrimaryButtonPressLasted;
+      reedSwitchTop = true;
+      changeMade = true;
+      switchToPersistentOTAMode(true);
+    }
+    else
+    {
+      activationTime = lastPrimaryButtonPressLasted;
+      reedSwitchTop = true;
+
+      mapScreen->cycleZoom(); changeMade = true;
+      mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
+    }
   }
 
-  // press second button for 10 seconds to restart
-  // press second button for 5 seconds to attempt WiFi connect and enable OTA
+  // press second button for 5 seconds to restart
+  // press second button for 2 seconds to attempt WiFi connect and enable OTA
+  // short press second button for map legend.
   if (p_secondButton->wasReleasefor(5000))
   { 
      esp_restart();
@@ -452,26 +475,14 @@ bool checkReedSwitches()
 
       switchToPersistentOTAMode(false);
       changeMade = true;
-//      const bool refreshCurrentScreen=true;
-  //    cycleDisplays(refreshCurrentScreen);
   }
-  // press second button for 1 second...
-  else if (p_secondButton->wasReleasefor(500))
-  {
-    activationTime = lastSecondButtonPressLasted;
-    reedSwitchTop = false;
-
-    mapScreen->toggleDrawAllFeatures();
-    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
-    changeMade = true;
-  }
-  // press second button for 0.1 second...
   else if (p_secondButton->wasReleasefor(100))
   {
     activationTime = lastSecondButtonPressLasted;
     reedSwitchTop = false;
+    changeMade = true;
 
-    mapScreen->cycleZoom(); changeMade = true;
+    mapScreen->displayMapLegend();
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   /*
