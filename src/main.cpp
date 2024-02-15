@@ -147,7 +147,7 @@ char currentTarget[128];
 char previousTarget[128];
 bool refreshTargetShown = false;
 
-bool checkReedSwitches();
+bool checkGoProButtons();
 void publishToMakoTestMessage(const char* testMessage);
 void publishToMakoReedActivation(const bool topReed, const uint32_t ms);
 
@@ -238,7 +238,7 @@ void recoveryScreen()
   const uint32_t end = millis() + 5000;
   while (end > millis())
   {
-    checkReedSwitches();
+    checkGoProButtons();
     delay(20);
   }
 }
@@ -370,7 +370,7 @@ bool disableESPNowandEnableOTA()
   return true;
 }
 
-bool checkReedSwitches()
+bool checkGoProButtons()
 {
   bool changeMade = false;
 
@@ -431,14 +431,34 @@ bool checkReedSwitches()
   }
 */
 
-  // press primary button for 0.5 second to toggle features shown
-  if (p_primaryButton->wasReleasefor(500))
+
+  // press primary button for 5 second to clear breadcrumbtrail
+  if (p_primaryButton->wasReleasefor(5000))
   {
-    activationTime = lastSecondButtonPressLasted;
+    activationTime = lastPrimaryButtonPressLasted;
+    reedSwitchTop = false;
+    changeMade = true;
+
+    mapScreen->clearBreadCrumbTrail();
+  }
+  // press primary button for 2 second to toggle draw all features
+  else if (p_primaryButton->wasReleasefor(2000))
+  {
+    activationTime = lastPrimaryButtonPressLasted;
     reedSwitchTop = true;
     changeMade = true;
 
     mapScreen->toggleDrawAllFeatures();
+    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
+  }
+  // press primary button for 0.5 second to toggle show bread crumb trail
+  else if (p_primaryButton->wasReleasefor(500))   
+  {
+    activationTime = lastPrimaryButtonPressLasted;
+    reedSwitchTop = true;
+    changeMade = true;
+
+    mapScreen->toggleShowBreadCrumbTrail();
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
@@ -461,10 +481,11 @@ bool checkReedSwitches()
     }
   }
 
-  // press second button for 5 seconds to restart
-  // press second button for 2 seconds to attempt WiFi connect and enable OTA
-  // short press second button for map legend.
-  if (p_secondButton->wasReleasefor(5000))
+  // press second button for 10 seconds to restart
+  // press second button for 5 seconds to attempt WiFi connect and enable OTA
+  // press second button for 2 seconds for map legend.
+  // short press second button to start/stop track
+  if (p_secondButton->wasReleasefor(10000))
   { 
      esp_restart();
   }
@@ -476,7 +497,7 @@ bool checkReedSwitches()
       switchToPersistentOTAMode(false);
       changeMade = true;
   }
-  else if (p_secondButton->wasReleasefor(100))
+  else if (p_secondButton->wasReleasefor(1000))
   {
     activationTime = lastSecondButtonPressLasted;
     reedSwitchTop = false;
@@ -485,7 +506,16 @@ bool checkReedSwitches()
     mapScreen->displayMapLegend();
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
-  /*
+  else if (p_secondButton->wasReleasefor(100))
+  {
+    activationTime = lastSecondButtonPressLasted;
+    reedSwitchTop = false;
+    changeMade = true;
+
+    mapScreen->toggleRecordBreadCrumbTrail();
+  }
+
+    /*
   if (activationTime > 0)
   {
     if (writeLogToSerial)
@@ -640,7 +670,7 @@ void loop()
     switchToPersistentOTAMode(true);
   }
 
-  checkReedSwitches();
+  checkGoProButtons();
 
   bool refreshMap = false;
 
@@ -815,7 +845,7 @@ void switchToPersistentOTAMode(bool clearScreen)
         prevStatus = status;
         delay(500);
       }
-      checkReedSwitches();
+      checkGoProButtons();
     }
 }
 
@@ -1065,7 +1095,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
     compositeSprite->print(".");
     mapScreen->copyCompositeSpriteToDisplay();
     delay(500);
-    checkReedSwitches();
+    checkGoProButtons();
   }
   compositeSprite->print("\n");
 
@@ -1189,7 +1219,7 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
         delay(repeatDelay);
     }
     
-    checkReedSwitches();
+    checkGoProButtons();
     delay(1000);
   }
 
@@ -1336,7 +1366,7 @@ bool pairWithPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, int max
       compositeSprite->setTextColor(espScanForeColour,espScanBackColour);
     }
     mapScreen->copyCompositeSpriteToDisplay();
-    checkReedSwitches();  
+    checkGoProButtons();  
   }
 
   delay(1000);
