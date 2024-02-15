@@ -151,6 +151,7 @@ bool checkGoProButtons();
 void publishToMakoBreadCrumbRecord(const bool record);
 void publishToMakoTestMessage(const char* testMessage);
 void publishToMakoReedActivation(const bool topReed, const uint32_t ms);
+void placePinTest();
 
 void resetCurrentTarget();
 
@@ -515,6 +516,7 @@ bool checkGoProButtons()
     changeMade = true;
 
     mapScreen->toggleRecordBreadCrumbTrail();
+//    placePinTest();
   }
 
     /*
@@ -527,6 +529,21 @@ bool checkGoProButtons()
   }*/
   
   return changeMade;
+}
+
+void placePinTest()
+{
+  const double depth = 0.0;
+
+  if (diveTrackTest)
+  {
+    mapScreen->placePin(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h, depth);
+  }
+
+  if (diveTraceTest)
+  {
+    mapScreen->placePin(latitude,longitude,heading, depth);
+  }
 }
 
 void publishToMakoBreadCrumbRecord(const bool record)
@@ -663,6 +680,21 @@ void loop()
         case 'B':   // record bread crumb trail on/off from Mako
         {
           mapScreen->setBreadCrumbTrailRecord(rxQueueESPNowItemBuffer[1] == 'Y');
+          break;
+        }
+
+        case 'P':   // record bread crumb trail on/off from Mako
+        {
+          char* pinMessage = rxQueueESPNowItemBuffer+1;
+
+          char* next = nullptr;
+
+          double lat = strtod(pinMessage,&next);
+          double lng = strtod(next,&next);
+          double head = strtod(next,&next);
+          double dep = strtod(next,&next);
+
+          mapScreen->placePin(lat, lng, head, dep);
           break;
         }
 
