@@ -148,6 +148,7 @@ char previousTarget[128];
 bool refreshTargetShown = false;
 
 bool checkGoProButtons();
+void publishToMakoBreadCrumbRecord(const bool record);
 void publishToMakoTestMessage(const char* testMessage);
 void publishToMakoReedActivation(const bool topReed, const uint32_t ms);
 
@@ -264,6 +265,7 @@ void setup()
 
   amoled.setBrightness(defaultBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
+  mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
   compositeSprite = &mapScreen->getCompositeSprite();
   compositeSprite->loadFont(NotoSansBold36);     // use smooth font    -D SMOOTH_FONT=1
@@ -311,9 +313,9 @@ bool pairWithMako()
 
     if (isPairedWithMako)
     {
-      // send message to tiger to give first target
       publishToMakoTestMessage("Conn Ok");
-      delay(1000);
+      mapScreen->clearBreadCrumbTrail();    // will turn off any recording and notify mako that recording is off.
+      delay(500);
     }
   }
 
@@ -527,6 +529,21 @@ bool checkGoProButtons()
   return changeMade;
 }
 
+void publishToMakoBreadCrumbRecord(const bool record)
+{
+  if (isPairedWithMako && ESPNow_mako_peer.channel == ESPNOW_CHANNEL)
+  {
+    snprintf(mako_espnow_buffer,sizeof(mako_espnow_buffer),"B%c",(record ? 'Y' : 'N'));
+    if (writeLogToSerial)
+    {
+      USB_SERIAL.println("Sending ESP B msg to Mako...");
+      USB_SERIAL.println(mako_espnow_buffer);
+    }
+
+    ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, reinterpret_cast<uint8_t*>(mako_espnow_buffer), strlen(mako_espnow_buffer)+1);
+  }
+}
+
 void publishToMakoTestMessage(const char* testMessage)
 {
   if (isPairedWithMako && ESPNow_mako_peer.channel == ESPNOW_CHANNEL)
@@ -640,6 +657,12 @@ void loop()
             strncpy(currentTarget,rxQueueESPNowItemBuffer+1,sizeof(currentTarget));
             refreshTargetShown = true;
           }
+          break;
+        }
+
+        case 'B':   // record bread crumb trail on/off from Mako
+        {
+          mapScreen->setBreadCrumbTrailRecord(rxQueueESPNowItemBuffer[1] == 'Y');
           break;
         }
 
