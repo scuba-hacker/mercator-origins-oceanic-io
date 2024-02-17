@@ -5,6 +5,15 @@
 #include <LilyGo_AMOLED.h>
 #include <TFT_eSPI.h>
 
+#include <Adafruit_AHTX0.h>
+#include <vl53l4cx_class.h>
+
+#define XSHUT_PIN A1
+
+TwoWire *DEV_I2C = &Wire;
+
+VL53L4CX sensor_vl53l4cx_sat;
+
 #include <esp_now.h>
 #include <WiFi.h>
 #include <freertos/queue.h>
@@ -53,7 +62,7 @@ void cycleTrackIndex();
 
 MercatorElegantOtaClass MercatorElegantOta;
 
-
+Adafruit_AHTX0 ahtSensor;
 
 const String ssid_not_connected = "-";
 String ssid_connected;
@@ -190,6 +199,69 @@ void testMapDisplay();
 bool disableESPNowandEnableOTA();
 void switchToPersistentOTAMode(bool clearScreen);
 
+/* VL53L4CX_RangeStatusCode --------------------------------------------------*/
+String VL53L4CX_RangeStatusCode(uint8_t status)
+{
+  switch (status)
+  {
+    case VL53L4CX_RANGESTATUS_RANGE_VALID:
+      return "VL53L4CX_RANGESTATUS_RANGE_VALID";
+    case VL53L4CX_RANGESTATUS_SIGMA_FAIL:
+      return "VL53L4CX_RANGESTATUS_SIGMA_FAIL";
+    case VL53L4CX_RANGESTATUS_RANGE_VALID_MIN_RANGE_CLIPPED:
+      return "VL53L4CX_RANGESTATUS_RANGE_VALID_MIN_RANGE_CLIPPED";
+    case VL53L4CX_RANGESTATUS_OUTOFBOUNDS_FAIL:
+      return "VL53L4CX_RANGESTATUS_OUTOFBOUNDS_FAIL";
+    case VL53L4CX_RANGESTATUS_HARDWARE_FAIL:
+      return "VL53L4CX_RANGESTATUS_HARDWARE_FAIL";
+    case VL53L4CX_RANGESTATUS_RANGE_VALID_NO_WRAP_CHECK_FAIL:
+      return "VL53L4CX_RANGESTATUS_RANGE_VALID_NO_WRAP_CHECK_FAIL";
+    case VL53L4CX_RANGESTATUS_WRAP_TARGET_FAIL:
+      return "VL53L4CX_RANGESTATUS_WRAP_TARGET_FAIL";
+    case VL53L4CX_RANGESTATUS_PROCESSING_FAIL:
+      return "VL53L4CX_RANGESTATUS_PROCESSING_FAIL";
+    case VL53L4CX_RANGESTATUS_XTALK_SIGNAL_FAIL:
+      return "VL53L4CX_RANGESTATUS_XTALK_SIGNAL_FAIL";
+    case VL53L4CX_RANGESTATUS_SYNCRONISATION_INT:
+      return "VL53L4CX_RANGESTATUS_SYNCRONISATION_INT";
+    case VL53L4CX_RANGESTATUS_RANGE_VALID_MERGED_PULSE:
+      return "VL53L4CX_RANGESTATUS_RANGE_VALID_MERGED_PULSE";
+    case VL53L4CX_RANGESTATUS_TARGET_PRESENT_LACK_OF_SIGNAL:
+      return "VL53L4CX_RANGESTATUS_TARGET_PRESENT_LACK_OF_SIGNAL";
+    case VL53L4CX_RANGESTATUS_MIN_RANGE_FAIL:
+      return "VL53L4CX_RANGESTATUS_MIN_RANGE_FAIL";
+    case VL53L4CX_RANGESTATUS_RANGE_INVALID:
+      return "VL53L4CX_RANGESTATUS_RANGE_INVALID";
+    case VL53L4CX_RANGESTATUS_NONE:
+      return "VL53L4CX_RANGESTATUS_NONE";
+    default:
+      return ("UNKNOWN STATUS: " + String(status));
+  }
+}
+
+/* I2CDeviceAvailable --------------------------------------------------------*/
+bool I2CDeviceAvailable(uint8_t address, TwoWire **wire)
+{
+  byte error = 1;
+  bool available = false;
+
+  // Check if device is available at the expected address
+  Wire.begin();
+  Wire.beginTransmission(address);
+  error = Wire.endTransmission();
+
+  if (error == 0) {
+    *wire = &Wire;
+    available = true;
+
+    Serial.print("  I2c Device Found at Address 0x");
+    Serial.print(address, HEX); Serial.println(" on Wire");
+  }
+  Wire.end();
+
+  return available;
+}
+
 void resetCompositeSpriteCursor()
 {
   compositeSprite->setCursor(0,30);
@@ -225,13 +297,16 @@ bool checkButtons()
   return result;
 }
 
+bool ahtStatus=false;   // Adafruit AHT20
+bool tofStatus=false;   // Adafruit VL53L4CX  https://github.com/stm32duino/VL53L4CX
+
 void recoveryScreen()
 {
   if (compositeSprite)
   {
     compositeSprite->fillSprite(TFT_DARKGREEN);
     resetCompositeSpriteCursor();
-    compositeSprite->println("Press Boot Button\nfor Recovery OTA");
+    compositeSprite->printf("Press Boot Button\nfor Recovery OTA\n%s\n%s",(ahtStatus ? "AHT YES" : "AHT NO"),(tofStatus ? "ToF YES" : "ToF No"));
     mapScreen->copyCompositeSpriteToDisplay();
   }
 
@@ -247,6 +322,45 @@ void recoveryScreen()
 
 void setup()
 {
+  const int gpioSDA = 6;
+  const int gpioSCL = 7;
+  
+  DEV_I2C->setPins(gpioSDA, gpioSCL);
+
+  ahtStatus = ahtSensor.begin(DEV_I2C);
+
+  VL53L4CX_Error error = VL53L4CX_ERROR_NONE;
+
+  if (I2CDeviceAvailable(VL53L4CX_DEFAULT_DEVICE_ADDRESS >> 1, &DEV_I2C)) 
+  {
+    DEV_I2C->begin();
+    sensor_vl53l4cx_sat.setI2cDevice(DEV_I2C);
+    sensor_vl53l4cx_sat.setXShutPin(XSHUT_PIN);
+
+    // Configure VL53L4CX satellite component.
+    sensor_vl53l4cx_sat.begin();
+    
+    // Switch off VL53L4CX satellite component.
+    sensor_vl53l4cx_sat.VL53L4CX_Off();
+
+    //Initialize VL53L4CX satellite component.
+    error = sensor_vl53l4cx_sat.InitSensor(VL53L4CX_DEFAULT_DEVICE_ADDRESS);
+
+    if (error != VL53L4CX_ERROR_NONE)
+    {
+      if (writeLogToSerial)
+      {
+        USB_SERIAL.print("Error Initializing Sensor: ");
+        USB_SERIAL.println(error);
+      }
+    }
+    else
+    {
+      tofStatus = true;
+    }
+  }
+
+
   char c = track_and_trace_html_content[0];
 
   p_primaryButton = &ReedSwitchGoProTop;
