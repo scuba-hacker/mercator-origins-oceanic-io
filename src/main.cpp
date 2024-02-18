@@ -40,6 +40,8 @@ uint32_t otaTimerExpired = 60000;
 const bool enableOTAServerAtStartup=false;
 const bool enableESPNow = !enableOTAServerAtStartup;
 
+const bool enableToFTest = true;
+
 #include "dive_track.h"
 extern const location diveTrack[];
 extern "C" int getSizeOfDiveTrack();
@@ -306,7 +308,7 @@ void recoveryScreen()
   {
     compositeSprite->fillSprite(TFT_DARKGREEN);
     resetCompositeSpriteCursor();
-    compositeSprite->printf("Press Boot Button\nfor Recovery OTA\n%s\n%s",(ahtStatus ? "AHT YES" : "AHT NO"),(tofStatus ? "ToF YES" : "ToF No"));
+    compositeSprite->printf("Press Boot Button\nfor Recovery OTA\n");
     mapScreen->copyCompositeSpriteToDisplay();
   }
 
@@ -324,7 +326,7 @@ void setup()
 {
   const int gpioSDA = 6;
   const int gpioSCL = 7;
-  
+
   DEV_I2C->setPins(gpioSDA, gpioSCL);
 
   ahtStatus = ahtSensor.begin(DEV_I2C);
@@ -717,8 +719,25 @@ bool isMakoMessage(char m)
   return (m == 'X' || m == 'c');
 }
 
+int nextReadHumiditySensorTime = 0;
+const int timeBetweenHumidityReads = 5000;
+
 void loop()
 { 
+  if (enableToFTest)
+  {
+
+  }
+
+  if (millis() > nextReadHumiditySensorTime)
+  {
+    nextReadHumiditySensorTime = millis() + timeBetweenHumidityReads;
+
+    sensors_event_t humidity, temp;
+    ahtSensor.getEvent(&humidity, &temp);
+    mapScreen->setHumidityAndTemp(humidity.relative_humidity,temp.temperature);
+  }
+
   // do not process queued messages if ota is active, mapscreen is deleted and espnow will be shutdown anyway.
   if (msgsESPNowReceivedQueue && !otaActive)
   {
@@ -955,9 +974,6 @@ void loop()
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
 
       delay(50);
-//      uint32_t now = millis();
-//      while (millis() < now + 100)
-//        yield();
     }
     else if (refreshMap)
     {
@@ -967,8 +983,6 @@ void loop()
     {
       delay (50);
     }
-//       yield();
-
   }
 }
 
