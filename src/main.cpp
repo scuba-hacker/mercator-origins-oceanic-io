@@ -8,7 +8,8 @@
 #include <Adafruit_AHTX0.h>
 #include <vl53l4cx_class.h>
 
-#define XSHUT_PIN A1
+// 0 means not set (was previously set to A1 == 2)
+#define XSHUT_PIN 0
 
 TwoWire *DEV_I2C = &Wire;
 
@@ -1107,6 +1108,19 @@ void loop()
     {
       mapScreen->setZoom(4);   // 
       refreshMap = true;
+    }
+    else if (str == std::string("rebootButton"))
+    {
+      esp_restart();
+    }
+    else if (str == std::string("startSerialButton"))
+    {
+      writeLogToSerial = true;
+    }
+    else if (str == std::string("stopSerialButton"))
+    {
+      writeLogToSerial = false;
+      WebSerial.closeAll();
     }
     else if (str == std::string("dim"))
     {
