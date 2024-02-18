@@ -33,7 +33,7 @@ VL53L4CX sensor_vl53l4cx_sat;
 
 #include "Button.h"
 
-bool writeLogToSerial=true;
+bool writeLogToSerial=false;
 bool testPreCannedLatLong=false;
 bool diveTrackTest = false;
 bool diveTraceTest = false;
@@ -785,7 +785,7 @@ bool isMakoMessage(char m)
 uint32_t nextReadHumiditySensorTime = 0;
 const uint32_t timeBetweenHumidityReads = 5000;
 uint32_t nextToFSensorTime = 0;
-const uint32_t timeBetweenToFReads = 1000;
+const uint32_t timeBetweenToFReads = 100;
 
 void acquireHumidityAndTemperatureReadings()
 {
@@ -845,7 +845,7 @@ void acquireLidarDistanceReading()
     if (writeLogToSerial)
       USB_SERIAL.printf("VL53L4CX Satellite: Count=%d, #Objs=%1d \n", pMultiRangingData->StreamCount, no_of_object_found);
       
-    maxDistance = -0.001;
+    maxDistance = -0.5;
     for (int j = 0; j < no_of_object_found; j++) 
     {
       if (pMultiRangingData->RangeData[j].RangeMilliMeter > maxDistance)
