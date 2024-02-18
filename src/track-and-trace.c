@@ -76,6 +76,7 @@ const char track_and_trace_html_content[] =
 "    <button class=\"button button-red\" id=\"stopButton\">Stop</button>\n"
 "    <button class=\"button button-orange\" id=\"resetButton\">Reset</button>\n"
 "</div>\n"
+"<iframe src=\"/webserial\" width=\"1000\" height=\"1000\" frameborder=\"0\"></iframe>\n"
 "\n"
 "<script>\n"
 "    // Function to handle button activation\n"

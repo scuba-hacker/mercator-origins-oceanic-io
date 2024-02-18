@@ -28,6 +28,8 @@ VL53L4CX sensor_vl53l4cx_sat;
 // rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
 #include "mercator_secrets.c"
 
+#include <WebSerial.h>
+
 #include "Button.h"
 
 bool writeLogToSerial=true;
@@ -40,7 +42,7 @@ uint32_t otaTimerExpired = 60000;
 const bool enableOTAServerAtStartup=false;
 const bool enableESPNow = !enableOTAServerAtStartup;
 
-const bool enableToFTest = true;
+uint8_t newLidarDataReady = 0;
 
 #include "dive_track.h"
 extern const location diveTrack[];
@@ -145,7 +147,13 @@ int espScanForeColour = TFT_WHITE;
 int wifiScanBackColour = TFT_CYAN;
 int wifiScanForeColour = TFT_BLUE;
 
-#define USB_SERIAL Serial
+#define USE_WEBSERIAL
+
+#ifdef USE_WEBSERIAL
+  #define USB_SERIAL WebSerial
+#else
+  #define USB_SERIAL Serial
+#endif
 
 const int defaultBrightness = 255;
 
@@ -302,6 +310,17 @@ bool checkButtons()
 bool ahtStatus=false;   // Adafruit AHT20
 bool tofStatus=false;   // Adafruit VL53L4CX  https://github.com/stm32duino/VL53L4CX
 
+void startupScreen()
+{
+  if (compositeSprite)
+  {
+    compositeSprite->fillSprite(TFT_NAVY);
+    resetCompositeSpriteCursor();
+    compositeSprite->printf("Initialising Sensors...");
+    mapScreen->copyCompositeSpriteToDisplay();
+  }
+}
+
 void recoveryScreen()
 {
   if (compositeSprite)
@@ -322,14 +341,34 @@ void recoveryScreen()
   }
 }
 
-void setup()
+void onOTAUpdateStart(AsyncElegantOtaClass* elegantOTA)
+{
+  // Stop all trace/track activity so that OTA proceeds at full speed.
+  httpQueue.push("stop");
+
+  // disable all sensor readings too
+  ahtStatus = false;
+  tofStatus = false;
+
+  //ws.closeAll();          // close all websocket connections for test page
+  WebSerial.closeAll();   // close all websocket connetions for WebSerial
+}
+
+void initI2C()
 {
   const int gpioSDA = 6;
   const int gpioSCL = 7;
 
   DEV_I2C->setPins(gpioSDA, gpioSCL);
+}
 
+void initHumiditySensor()
+{
   ahtStatus = ahtSensor.begin(DEV_I2C);
+}
+
+void initToFSensor()
+{
 
   VL53L4CX_Error error = VL53L4CX_ERROR_NONE;
 
@@ -358,34 +397,57 @@ void setup()
     }
     else
     {
-      tofStatus = true;
+      error = sensor_vl53l4cx_sat.VL53L4CX_SetDistanceMode(VL53L4CX_DISTANCEMODE_LONG);
+
+      if (error != VL53L4CX_ERROR_NONE)
+      {
+        USB_SERIAL.print("Error Initializing Distance Mode: ");
+        USB_SERIAL.println(error);
+      }
+      else
+      {
+        // Start Measurements
+        sensor_vl53l4cx_sat.VL53L4CX_StartMeasurement();
+
+        tofStatus = true;
+      }
     }
   }
+}
 
-
-  char c = track_and_trace_html_content[0];
-
-  p_primaryButton = &ReedSwitchGoProTop;
-  p_secondButton = &ReedSwitchGoProSide;
-
+void setup()
+{
   dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
-  dumpHeapUsage("Setup(): after amoled.begin() ");
-
-  if (writeLogToSerial)
-  {
-    USB_SERIAL.begin(115200);
-    Serial.flush();
-    delay(50);
-  }
-  dumpHeapUsage("Setup(): after USB serial port started ");
-
   amoled.setBrightness(defaultBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
   mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
   compositeSprite = &mapScreen->getCompositeSprite();
   compositeSprite->loadFont(NotoSansBold36);     // use smooth font    -D SMOOTH_FONT=1
+
+  startupScreen();
+
+  dumpHeapUsage("Setup(): after amoled.begin() ");
+
+  if (writeLogToSerial)
+  {
+    #ifndef USE_WEBSERIAL
+      USB_SERIAL.begin(115200);
+      Serial.flush();
+      delay(50);
+    #endif
+  }
+  dumpHeapUsage("Setup(): after USB serial port started ");
+
+  MercatorElegantOta.setUploadBeginCallback(onOTAUpdateStart);
+
+  initI2C();
+  initHumiditySensor();
+  initToFSensor();
+
+  p_primaryButton = &ReedSwitchGoProTop;
+  p_secondButton = &ReedSwitchGoProSide;
 
   recoveryScreen();
 
@@ -719,23 +781,119 @@ bool isMakoMessage(char m)
   return (m == 'X' || m == 'c');
 }
 
-int nextReadHumiditySensorTime = 0;
-const int timeBetweenHumidityReads = 5000;
+uint32_t nextReadHumiditySensorTime = 0;
+const uint32_t timeBetweenHumidityReads = 5000;
+uint32_t nextToFSensorTime = 0;
+const uint32_t timeBetweenToFReads = 1000;
+
+void acquireHumidityAndTemperatureReadings()
+{
+    float relative_humidity = -1.0;
+    float temperature = -1.0;
+
+    if (ahtStatus)
+    {
+      sensors_event_t humidity, temp;
+      ahtSensor.getEvent(&humidity, &temp);
+      relative_humidity = humidity.relative_humidity;
+      temperature = temp.temperature;
+    }
+
+    mapScreen->setHumidityAndTemp(relative_humidity,temperature);
+}
+
+void acquireLidarDistanceReading()
+{
+  if (!tofStatus)
+  {
+    mapScreen->setLidarDistance(-1.0);
+    return;
+  }
+
+  float maxDistance = 0.0;
+
+  VL53L4CX_Error status = sensor_vl53l4cx_sat.VL53L4CX_GetMeasurementDataReady(&newLidarDataReady);
+
+  if (writeLogToSerial)
+    USB_SERIAL.printf("GetMeasurementDataReady Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
+
+  if (!newLidarDataReady)
+  {
+    if (writeLogToSerial)
+      USB_SERIAL.printf("Data Not Ready, returning\n");
+    return;
+  }
+  else
+  {
+    if (writeLogToSerial)
+      USB_SERIAL.printf("Data Ready, extract objects\n");
+  }
+
+  VL53L4CX_MultiRangingData_t MultiRangingData;
+  VL53L4CX_MultiRangingData_t *pMultiRangingData = &MultiRangingData;
+
+  if (!status)
+  {
+    status = sensor_vl53l4cx_sat.VL53L4CX_GetMultiRangingData(pMultiRangingData);
+
+    if (writeLogToSerial)
+      USB_SERIAL.printf("GetMultiRangingData Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
+
+    int no_of_object_found = pMultiRangingData->NumberOfObjectsFound;
+
+    if (writeLogToSerial)
+      USB_SERIAL.printf("VL53L4CX Satellite: Count=%d, #Objs=%1d \n", pMultiRangingData->StreamCount, no_of_object_found);
+      
+    maxDistance = -0.001;
+    for (int j = 0; j < no_of_object_found; j++) 
+    {
+      if (pMultiRangingData->RangeData[j].RangeMilliMeter > maxDistance)
+        maxDistance = ((float)pMultiRangingData->RangeData[j].RangeMilliMeter)/1000.0;
+
+      if (writeLogToSerial)
+      {
+        if (j != 0) 
+          USB_SERIAL.print("\r\n                               ");
+
+        USB_SERIAL.print("status=");
+        USB_SERIAL.print(pMultiRangingData->RangeData[j].RangeStatus);
+        USB_SERIAL.print(", D=");
+        USB_SERIAL.print(pMultiRangingData->RangeData[j].RangeMilliMeter);
+        USB_SERIAL.print("mm");
+        USB_SERIAL.print(", Signal=");
+        USB_SERIAL.print((float)pMultiRangingData->RangeData[j].SignalRateRtnMegaCps / 65536.0);
+        USB_SERIAL.print(" Mcps, Ambient=");
+        USB_SERIAL.print((float)pMultiRangingData->RangeData[j].AmbientRateRtnMegaCps / 65536.0);
+        USB_SERIAL.print(" Mcps, ");
+        USB_SERIAL.print(VL53L4CX_RangeStatusCode(pMultiRangingData->RangeData[j].RangeStatus));
+      }
+    }
+  }
+
+  if (status == 0)
+  {
+    status = sensor_vl53l4cx_sat.VL53L4CX_ClearInterruptAndStartMeasurement();
+    if (writeLogToSerial)
+      USB_SERIAL.printf("VL53L4CX_ClearInterruptAndStartMeasurement Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
+  }
+
+  mapScreen->setLidarDistance(maxDistance);
+
+  newLidarDataReady = 0;
+}
 
 void loop()
 { 
-  if (enableToFTest)
+  if (millis() > nextToFSensorTime)
   {
-
+    nextToFSensorTime = millis() + timeBetweenToFReads;
+    acquireLidarDistanceReading();
   }
 
   if (millis() > nextReadHumiditySensorTime)
   {
     nextReadHumiditySensorTime = millis() + timeBetweenHumidityReads;
-
-    sensors_event_t humidity, temp;
-    ahtSensor.getEvent(&humidity, &temp);
-    mapScreen->setHumidityAndTemp(humidity.relative_humidity,temp.temperature);
+    acquireHumidityAndTemperatureReadings();
   }
 
   // do not process queued messages if ota is active, mapscreen is deleted and espnow will be shutdown anyway.
@@ -854,7 +1012,8 @@ void loop()
   // for dev without buttons attached to device.
   if (enableOTATimer && otaTimerExpired < millis())
   {
-    USB_SERIAL.println("disable ESP Now, enable OTA");
+    if (writeLogToSerial)
+      USB_SERIAL.println("disable ESP Now, enable OTA");
     switchToPersistentOTAMode(true);
   }
 
@@ -1237,6 +1396,27 @@ const char* scanForKnownNetwork() // return first known network found
   return network;
 }
 
+void webSerialReceiveMessage(uint8_t *data, size_t len){
+  WebSerial.println("Received Data...");
+  String d = "";
+  for(int i=0; i < len; i++){
+    d += char(data[i]);
+  }
+
+  WebSerial.println(d);
+
+  if (d == "serial-off")
+  {
+    writeLogToSerial = false;
+    WebSerial.closeAll();
+  }
+  else if (d == "serial-on")
+  {
+    writeLogToSerial = true;
+    // force page refresh how?
+  }
+}
+
 bool setupOTAWebServer(const char* _ssid, const char* _password, const char* label, uint32_t timeout, bool wifiOnly)
 {
   if (wifiOnly && WiFi.status() == WL_CONNECTED)
@@ -1305,6 +1485,15 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
 
       MercatorElegantOta.setID(MERCATOR_OTA_DEVICE_LABEL);
       MercatorElegantOta.begin(&httpQueue, &asyncWebServer);    // Start MercatorElegantOta
+
+      static bool webSerialInitialised = false;
+
+      if (!webSerialInitialised)
+      {
+        WebSerial.begin(&asyncWebServer);
+        WebSerial.msgCallback(webSerialReceiveMessage);
+        webSerialInitialised = true;
+      }
 
       if (writeLogToSerial)
         USB_SERIAL.println("setupOTAWebServer: calling asyncWebServer.begin");
