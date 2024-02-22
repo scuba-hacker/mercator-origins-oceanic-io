@@ -29,7 +29,12 @@ VL53L4CX sensor_vl53l4cx_sat;
 // rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
 #include "mercator_secrets.c"
 
+//#define USE_WEBSERIAL
+
+
+#ifdef USE_WEBSERIAL
 #include <WebSerial.h>
+#endif
 
 #include "Button.h"
 
@@ -95,13 +100,13 @@ QueueHandle_t msgsESPNowReceivedQueue=nullptr;
 
 bool ESPNowActive = false;
 
-const uint8_t BUTTON_REED_TOP_PIN=38;             // UPDATE FOR T4 - rename REED
-const uint8_t BUTTON_REED_SIDE_PIN=48;             // UPDATE FOR T4 - rename REED
+const uint8_t BUTTON_TOP_GPIO=48;
+const uint8_t BUTTON_SIDE_GPIO=38;
 const uint8_t BUTTON_BOOT=0;
 const uint32_t MERCATOR_DEBOUNCE_MS=10;    
 
-Button ReedSwitchGoProTop = Button(BUTTON_REED_TOP_PIN, true, MERCATOR_DEBOUNCE_MS);    // from utility/Button.h for M5 Stick C Plus
-Button ReedSwitchGoProSide = Button(BUTTON_REED_SIDE_PIN, true, MERCATOR_DEBOUNCE_MS); // from utility/Button.h for M5 Stick C Plus
+Button SwitchGoProTop = Button(BUTTON_TOP_GPIO, true, MERCATOR_DEBOUNCE_MS);    // from utility/Button.h for M5 Stick C Plus
+Button SwitchGoProSide = Button(BUTTON_SIDE_GPIO, true, MERCATOR_DEBOUNCE_MS); // from utility/Button.h for M5 Stick C Plus
 Button  BootButton =  Button(BUTTON_BOOT, true, MERCATOR_DEBOUNCE_MS);                  // from utility/Button.h for M5 Stick C Plus
 
 uint16_t sideCount = 0, topCount = 0;
@@ -148,8 +153,6 @@ int espScanForeColour = TFT_WHITE;
 int wifiScanBackColour = TFT_CYAN;
 int wifiScanForeColour = TFT_BLUE;
 
-#define USE_WEBSERIAL
-
 #ifdef USE_WEBSERIAL
   #define USB_SERIAL WebSerial
 #else
@@ -182,7 +185,7 @@ const char* scanForKnownNetwork();
 bool setupOTAWebServer(const char* _ssid, const char* _password, const char* label, uint32_t timeout, bool wifiOnly = false);
 void toggleOTAActiveAndWifiIfUSBPowerOff();
 void updateButtonsAndBuzzer();
-void readAndTestGoProReedSwitches();
+void readAndTestGoProSwitches();
 void InitESPNow();
 void configAndStartUpESPNow();
 void configESPNowDeviceAP();
@@ -278,36 +281,6 @@ void resetCompositeSpriteCursor()
   compositeSprite->setCursor(0,30);
 }
 
-bool checkButtons()
-{
-  bool result=false;
-
-  BootButton.read();
-  ReedSwitchGoProTop.read();
-  ReedSwitchGoProSide.read();
-/*
-  if (ReedSwitchGoProSide.isPressed() && ReedSwitchGoProTop.isPressed())
-  {
-    compositeSprite->fillSprite(TFT_RED);
-    mapScreen->copyCompositeSpriteToDisplay();
-    delay(3000);
-  }
-*/
-  if (BootButton.wasReleasefor(100) || ReedSwitchGoProTop.wasReleasefor(3000)) // switch to OTA mode
-  {    
-    amoled.setBrightness(50);
-    switchToPersistentOTAMode(true);    // never returns - loops waiting for OTA
-    result = true;
-  }
-
-  if (ReedSwitchGoProSide.wasReleasefor(3000))
-  {
-    ESP.restart();
-  }
-  
-  return result;
-}
-
 bool ahtStatus=false;   // Adafruit AHT20
 bool tofStatus=false;   // Adafruit VL53L4CX  https://github.com/stm32duino/VL53L4CX
 
@@ -315,7 +288,7 @@ void startupScreen()
 {
   if (compositeSprite)
   {
-    compositeSprite->fillSprite(TFT_NAVY);
+    compositeSprite->fillSprite(TFT_YELLOW);
     resetCompositeSpriteCursor();
     compositeSprite->printf("Initialising Sensors...");
     mapScreen->copyCompositeSpriteToDisplay();
@@ -338,6 +311,7 @@ void recoveryScreen()
   while (end > millis())
   {
     checkGoProButtons();
+
     delay(20);
   }
 }
@@ -352,7 +326,9 @@ void onOTAUpdateStart(AsyncElegantOtaClass* elegantOTA)
   tofStatus = false;
 
   //ws.closeAll();          // close all websocket connections for test page
+#ifdef USE_WEBSERIAL
   WebSerial.closeAll();   // close all websocket connetions for WebSerial
+#endif
 }
 
 void initI2C()
@@ -447,8 +423,8 @@ void setup()
   initHumiditySensor();
   initToFSensor();
 
-  p_primaryButton = &ReedSwitchGoProTop;
-  p_secondButton = &ReedSwitchGoProSide;
+  p_primaryButton = &SwitchGoProTop;
+  p_secondButton = &SwitchGoProSide;
 
   recoveryScreen();
 
@@ -502,7 +478,7 @@ bool pairWithMako()
   return isPairedWithMako;
 }
 
-void readAndTestGoProReedSwitches()
+void readAndTestGoProSwitches()
 {
   updateButtonsAndBuzzer();
 
@@ -556,7 +532,7 @@ bool checkGoProButtons()
 {
   bool changeMade = false;
 
-  bool reedSwitchTop;
+  bool buttonTop;
   uint32_t activationTime=0;
     
   updateButtonsAndBuzzer();
@@ -618,7 +594,7 @@ bool checkGoProButtons()
   if (p_primaryButton->wasReleasefor(5000))
   {
     activationTime = lastPrimaryButtonPressLasted;
-    reedSwitchTop = false;
+    buttonTop = false;
     changeMade = true;
 
     mapScreen->clearBreadCrumbTrail();
@@ -627,7 +603,7 @@ bool checkGoProButtons()
   else if (p_primaryButton->wasReleasefor(2000))
   {
     activationTime = lastPrimaryButtonPressLasted;
-    reedSwitchTop = true;
+    buttonTop = true;
     changeMade = true;
 
     mapScreen->toggleDrawAllFeatures();
@@ -637,7 +613,7 @@ bool checkGoProButtons()
   else if (p_primaryButton->wasReleasefor(500))   
   {
     activationTime = lastPrimaryButtonPressLasted;
-    reedSwitchTop = true;
+    buttonTop = true;
     changeMade = true;
 
     mapScreen->toggleShowBreadCrumbTrail();
@@ -649,14 +625,14 @@ bool checkGoProButtons()
     if (msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
     {
       activationTime = lastPrimaryButtonPressLasted;
-      reedSwitchTop = true;
+      buttonTop = true;
       changeMade = true;
       switchToPersistentOTAMode(true);
     }
     else
     {
       activationTime = lastPrimaryButtonPressLasted;
-      reedSwitchTop = true;
+      buttonTop = true;
 
       mapScreen->cycleZoom(); changeMade = true;
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
@@ -674,7 +650,7 @@ bool checkGoProButtons()
   else if (p_secondButton->wasReleasefor(2000))
   { 
       activationTime = lastSecondButtonPressLasted;
-      reedSwitchTop = false;
+      buttonTop = false;
 
       switchToPersistentOTAMode(false);
       changeMade = true;
@@ -682,7 +658,7 @@ bool checkGoProButtons()
   else if (p_secondButton->wasReleasefor(1000))
   {
     activationTime = lastSecondButtonPressLasted;
-    reedSwitchTop = false;
+    buttonTop = false;
     changeMade = true;
 
     mapScreen->displayMapLegend();
@@ -691,14 +667,22 @@ bool checkGoProButtons()
   else if (p_secondButton->wasReleasefor(100))
   {
     activationTime = lastSecondButtonPressLasted;
-    reedSwitchTop = false;
+    buttonTop = false;
     changeMade = true;
 
     mapScreen->toggleRecordBreadCrumbTrail();
 //    placePinTest();
   }
 
-    /*
+  if (BootButton.isPressed())
+  {
+      activationTime = lastPrimaryButtonPressLasted;
+      buttonTop = true;
+      changeMade = true;
+      switchToPersistentOTAMode(true);
+  }
+
+  /*
   if (activationTime > 0)
   {
     if (writeLogToSerial)
@@ -1120,7 +1104,9 @@ void loop()
     else if (str == std::string("stopSerialButton"))
     {
       writeLogToSerial = false;
+    #ifdef USE_WEBSERIAL
       WebSerial.closeAll();
+    #endif
     }
     else if (str == std::string("dim"))
     {
@@ -1410,6 +1396,7 @@ const char* scanForKnownNetwork() // return first known network found
   return network;
 }
 
+#ifdef USE_WEBSERIAL
 void webSerialReceiveMessage(uint8_t *data, size_t len){
   WebSerial.println("Received Data...");
   String d = "";
@@ -1430,6 +1417,7 @@ void webSerialReceiveMessage(uint8_t *data, size_t len){
     // force page refresh how?
   }
 }
+#endif
 
 bool setupOTAWebServer(const char* _ssid, const char* _password, const char* label, uint32_t timeout, bool wifiOnly)
 {
@@ -1500,6 +1488,8 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
       MercatorElegantOta.setID(MERCATOR_OTA_DEVICE_LABEL);
       MercatorElegantOta.begin(&httpQueue, &asyncWebServer);    // Start MercatorElegantOta
 
+
+      #ifdef USE_WEBSERIAL
       static bool webSerialInitialised = false;
 
       if (!webSerialInitialised)
@@ -1508,6 +1498,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
         WebSerial.msgCallback(webSerialReceiveMessage);
         webSerialInitialised = true;
       }
+      #endif
 
       if (writeLogToSerial)
         USB_SERIAL.println("setupOTAWebServer: calling asyncWebServer.begin");
