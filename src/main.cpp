@@ -39,6 +39,9 @@ VL53L4CX sensor_vl53l4cx_sat;
 #include "Button.h"
 
 bool writeLogToSerial=false;
+bool enableToFSensor=false;
+bool doInitialSerialTransmitTest=false;
+bool doInitialSerialReceiveEchoTest=false;
 bool testPreCannedLatLong=false;
 bool diveTrackTest = false;
 bool diveTraceTest = false;
@@ -162,12 +165,12 @@ int wifiScanForeColour = TFT_BLUE;
 const int defaultBrightness = 255;
 
 char rxQueueESPNowItemBuffer[256];
-const uint8_t queueESPNowLength=10;
+const uint8_t queueESPNowLength=20;
 
 std::queue<std::string> httpQueue;
 
-char currentTarget[128];
-char previousTarget[128];
+char currentTarget[256];
+char previousTarget[256];
 bool refreshTargetShown = false;
 
 bool checkGoProButtons();
@@ -184,7 +187,7 @@ void resetClock();
 const char* scanForKnownNetwork();
 bool setupOTAWebServer(const char* _ssid, const char* _password, const char* label, uint32_t timeout, bool wifiOnly = false);
 void toggleOTAActiveAndWifiIfUSBPowerOff();
-void updateButtonsAndBuzzer();
+void updateButtons();
 void readAndTestGoProSwitches();
 void InitESPNow();
 void configAndStartUpESPNow();
@@ -305,15 +308,68 @@ void recoveryScreen()
     mapScreen->copyCompositeSpriteToDisplay();
   }
 
-  compositeSprite->printf("Press Boot Button\nfor Recovery OTA");
-
   const uint32_t end = millis() + 5000;
   while (end > millis())
   {
     checkGoProButtons();
-
     delay(20);
   }
+
+  if (doInitialSerialReceiveEchoTest)
+  {
+    compositeSprite->fillSprite(TFT_BLUE);
+    mapScreen->copyCompositeSpriteToDisplay();
+
+    while(true)
+    {
+      if (Serial1.available())
+      {
+          char r = Serial1.read();
+          Serial1.write(r);
+          compositeSprite->println(r);
+          mapScreen->copyCompositeSpriteToDisplay();
+      }
+    }
+  }
+
+  if (doInitialSerialTransmitTest)
+  {
+    compositeSprite->fillSprite(TFT_ORANGE);
+    mapScreen->copyCompositeSpriteToDisplay();
+ // test transmit from oceanic to reef
+    const char start_char = '!';
+    const char end_char = '_';
+    char j=start_char;
+    for (int i=0;i<10000000; i++)
+    {
+      Serial1.write(j);
+      j++;
+      if (j>end_char)
+      {
+        j=start_char;
+      }
+//      delay(5);
+    }
+  }
+
+}
+
+void testReceiveFromReefToOceanic()
+{
+  Serial1.println("test\n");
+
+  char i[2] = "a";
+  int j=10;
+  while(Serial1.available() && j--)
+  {
+    i[0] = Serial1.read();
+    compositeSprite->printf(i);
+    mapScreen->copyCompositeSpriteToDisplay();
+  }
+
+  compositeSprite->println("done reading serial1");
+  mapScreen->copyCompositeSpriteToDisplay();
+  delay(3000);
 }
 
 void onOTAUpdateStart(AsyncElegantOtaClass* elegantOTA)
@@ -415,13 +471,21 @@ void setup()
       delay(50);
     #endif
   }
+
+  const int BEAGLE_UART_RX_GPIO = 44;
+  const int BEAGLE_UART_TX_GPIO = 43;
+  const int BEAGLE_BAUD = 115200;
+
+  Serial1.begin(BEAGLE_BAUD,SERIAL_8N1,BEAGLE_UART_RX_GPIO,BEAGLE_UART_TX_GPIO);
+
   dumpHeapUsage("Setup(): after USB serial port started ");
 
   MercatorElegantOta.setUploadBeginCallback(onOTAUpdateStart);
 
   initI2C();
   initHumiditySensor();
-  initToFSensor();
+  if (enableToFSensor)
+    initToFSensor();
 
   p_primaryButton = &SwitchGoProTop;
   p_secondButton = &SwitchGoProSide;
@@ -480,7 +544,7 @@ bool pairWithMako()
 
 void readAndTestGoProSwitches()
 {
-  updateButtonsAndBuzzer();
+  updateButtons();
 
   bool btnTopPressed = p_primaryButton->pressedFor(15);
   bool btnSidePressed = p_secondButton->pressedFor(15);
@@ -535,63 +599,11 @@ bool checkGoProButtons()
   bool buttonTop;
   uint32_t activationTime=0;
     
-  updateButtonsAndBuzzer();
+  updateButtons();
+
 /*
-  int pressedPrimaryButtonX, pressedPrimaryButtonY, pressedSecondButtonX, pressedSecondButtonY;
-
-  pressedPrimaryButtonX = 110;
-  pressedPrimaryButtonY = 5; 
-
-  pressedSecondButtonX = 5;
-  pressedSecondButtonY = 210;
-    
-  if (primaryButtonIsPressed && millis()-primaryButtonPressedTime > 250)
-  {
-    compositeSprite->setTextSize(3);
-    compositeSprite->setTextColor(TFT_WHITE, TFT_RED);
-    compositeSprite->setCursor(pressedPrimaryButtonX,pressedPrimaryButtonY);
-    compositeSprite->printf("%i",(millis()-primaryButtonPressedTime)/1000);
-    compositeSprite->setTextColor(TFT_WHITE, TFT_BLACK);
-    primaryButtonIndicatorNeedsClearing=true;
-  }
-  else
-  {
-    if (primaryButtonIndicatorNeedsClearing)
-    {
-      primaryButtonIndicatorNeedsClearing = false;
-      compositeSprite->setTextSize(3);
-      compositeSprite->setTextColor(TFT_WHITE, TFT_BLACK);
-      compositeSprite->setCursor(pressedPrimaryButtonX,pressedPrimaryButtonY);
-      compositeSprite->print(" ");
-    }
-  }
-
-  if (secondButtonIsPressed && millis()-secondButtonPressedTime > 250)
-  {
-    compositeSprite->setTextSize(3);
-    compositeSprite->setTextColor(TFT_WHITE, TFT_BLUE);
-    compositeSprite->setCursor(pressedSecondButtonX,pressedSecondButtonY);
-    compositeSprite->printf("%i",(millis()-secondButtonPressedTime)/1000);
-    compositeSprite->setTextColor(TFT_WHITE, TFT_BLACK);
-    secondButtonIndicatorNeedsClearing=true;
-  }
-  else
-  {
-    if (secondButtonIndicatorNeedsClearing)
-    {
-      secondButtonIndicatorNeedsClearing = false;
-      
-      compositeSprite->setTextSize(3);
-      compositeSprite->setTextColor(TFT_WHITE, TFT_BLACK);
-      compositeSprite->setCursor(pressedSecondButtonX,pressedSecondButtonY);
-      compositeSprite->print(" ");
-    }
-  }
-*/
-
-
-  // press primary button for 5 second to clear breadcrumbtrail
-  if (p_primaryButton->wasReleasefor(5000))
+  // press primary button for 10 second to clear breadcrumbtrail
+  if (p_primaryButton->wasReleasefor(10000))
   {
     activationTime = lastPrimaryButtonPressLasted;
     buttonTop = false;
@@ -610,7 +622,7 @@ bool checkGoProButtons()
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   // press primary button for 0.5 second to toggle show bread crumb trail
-  else if (p_primaryButton->wasReleasefor(500))   
+  else if (p_primaryButton->wasReleasefor(500))
   {
     activationTime = lastPrimaryButtonPressLasted;
     buttonTop = true;
@@ -619,15 +631,17 @@ bool checkGoProButtons()
     mapScreen->toggleShowBreadCrumbTrail();
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
+  */
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
-  else if (p_primaryButton->wasReleasefor(100))
+  if (p_primaryButton->wasReleasefor(100))
   {
     if (msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
     {
       activationTime = lastPrimaryButtonPressLasted;
       buttonTop = true;
       changeMade = true;
-      switchToPersistentOTAMode(true);
+      const bool clearScreen = true;
+      switchToPersistentOTAMode(clearScreen);
     }
     else
     {
@@ -641,20 +655,28 @@ bool checkGoProButtons()
 
   // press second button for 10 seconds to restart
   // press second button for 5 seconds to attempt WiFi connect and enable OTA
-  // press second button for 2 seconds for map legend.
+  // press second button for 1 seconds for map legend.
   // short press second button to start/stop track
   if (p_secondButton->wasReleasefor(10000))
   { 
-     esp_restart();
+    compositeSprite->fillSprite(TFT_RED);
+    resetCompositeSpriteCursor();
+    compositeSprite->setTextColor(TFT_WHITE,TFT_RED);
+    compositeSprite->println("Restart By Button Press");
+    mapScreen->copyCompositeSpriteToDisplay();
+    delay(10000);
+    esp_restart();
   }
-  else if (p_secondButton->wasReleasefor(2000))
+  else if (p_secondButton->wasReleasefor(5000))
   { 
-      activationTime = lastSecondButtonPressLasted;
-      buttonTop = false;
+    activationTime = lastSecondButtonPressLasted;
+    buttonTop = false;
 
-      switchToPersistentOTAMode(false);
-      changeMade = true;
+    const bool clearScreen = false;
+    switchToPersistentOTAMode(clearScreen);
+    changeMade = true;
   }
+  // Display Map Legend
   else if (p_secondButton->wasReleasefor(1000))
   {
     activationTime = lastSecondButtonPressLasted;
@@ -664,6 +686,7 @@ bool checkGoProButtons()
     mapScreen->displayMapLegend();
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
+  // Toggle Breadcrumb Trail
   else if (p_secondButton->wasReleasefor(100))
   {
     activationTime = lastSecondButtonPressLasted;
@@ -671,7 +694,6 @@ bool checkGoProButtons()
     changeMade = true;
 
     mapScreen->toggleRecordBreadCrumbTrail();
-//    placePinTest();
   }
 
   if (BootButton.isPressed())
@@ -869,7 +891,7 @@ void acquireLidarDistanceReading()
 
 void loop()
 { 
-  if (millis() > nextToFSensorTime)
+  if (enableToFSensor && millis() > nextToFSensorTime)
   {
     nextToFSensorTime = millis() + timeBetweenToFReads;
     acquireLidarDistanceReading();
@@ -979,8 +1001,8 @@ void loop()
           break;
         }
       }
-    }
 
+    }
     if (!isPairedWithMako && millis() > nextBattUpdateTime)
     {
       nextBattUpdateTime += battUpdateCadence;
@@ -1199,7 +1221,7 @@ void testMapDisplay()
   mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,heading);
 }
 
-void updateButtonsAndBuzzer()
+void updateButtons()
 {
   p_primaryButton->read();
   p_secondButton->read();
@@ -1450,7 +1472,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
     // check for cancellation button - top button.
 
 /*
-    updateButtonsAndBuzzer();
+    updateButtons();
     if (p_primaryButton->isPressed()) // cancel connection attempts
     {
       forcedCancellation = true;
@@ -1522,7 +1544,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
       connected = true;
   
       /*
-      updateButtonsAndBuzzer();
+      updateButtons();
       if (p_secondButton->isPressed())
       {
         compositeSprite->print("\n\n20\nsecond pause");
