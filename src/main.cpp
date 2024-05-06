@@ -1459,6 +1459,8 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
   // mapscreen does not get deleted with T4 - sufficient core RAM
   bool connected = false;
   WiFi.mode(WIFI_STA);
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  WiFi.setHostname("oceanic");
 
   WiFi.begin(_ssid, _password);
 
