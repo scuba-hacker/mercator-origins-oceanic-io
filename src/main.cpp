@@ -48,6 +48,8 @@ bool diveTraceTest = false;
 bool enableOTATimer=false;
 uint32_t otaTimerExpired = 60000;
 
+const bool correctForReversedCompassTrackTest = true;
+
 const bool enableOTAServerAtStartup=false;
 const bool enableESPNow = !enableOTAServerAtStartup;
 
@@ -1142,7 +1144,7 @@ void loop()
 
   if (diveTrackTest)
   {
-    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h);
+    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h + (correctForReversedCompassTrackTest ? 180 : 0));
     cycleTrackIndex();
   }
 
@@ -1154,7 +1156,7 @@ void loop()
       longitude+=longitudeDelta;
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
 
-      delay(50);
+      delay(100);
     }
     else if (refreshMap)
     {
@@ -1169,6 +1171,7 @@ void loop()
 
 void cycleTrackIndex()
 {
+  delay(100);
   trackIndex = (trackIndex + 1) % trackLength;
 }
 
