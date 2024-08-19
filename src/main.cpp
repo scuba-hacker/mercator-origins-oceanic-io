@@ -168,6 +168,8 @@ const int dayBrightness = 255;
 const int nightBrightness = 50;
 const int dimBrightness = 10;
 
+int currentBrightnessSet = 0;
+
 const int dayBrightnessThreshold = 3000;
 const int nightBrightnessThreshold = 1000;
 
@@ -456,11 +458,20 @@ void initToFSensor()
   }
 }
 
+void setScreenBrightness(uint16_t brightness)
+{
+  if (currentBrightnessSet != brightness)
+  {
+    amoled.setBrightness(brightness);
+    currentBrightnessSet = brightness;
+  }
+}
+
 void setup()
 {
   dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
-  amoled.setBrightness(dayBrightness);
+  setScreenBrightness(dayBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
   mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
@@ -1009,40 +1020,17 @@ void loop()
           uint16_t currentBrightnessReceived = 0;
           memcpy(&currentBrightnessReceived,  rxQueueESPNowItemBuffer + 1, sizeof(uint16_t)) ;
 
-          if (amoled.getBrightness() != dimBrightness)
+          if (currentBrightnessSet != dimBrightness)
           {
             if (currentBrightnessReceived < nightBrightnessThreshold)
             {
-                amoled.setBrightness(nightBrightness);
+              setScreenBrightness(nightBrightness);
             }
             else if (currentBrightnessReceived > dayBrightnessThreshold)
             {
-                amoled.setBrightness(dayBrightness);
-            }
-            else
-            {
-                // no change
+              setScreenBrightness(dayBrightness);
             }
           }
-
-          /*
-          uint8_t currentBrightness = amoled.getBrightness();
-          switch (currentBrightness)
-          {
-            case dimBrightness:
-            case nightBrightness:
-            {
-              amoled.setBrightness(dayBrightness);
-              break;
-            }
-            case dayBrightness:
-            default:
-            {
-              amoled.setBrightness(nightBrightness);
-              break;
-            }
-          }
-          */
         }
 
         default:
@@ -1180,15 +1168,15 @@ void loop()
     }
     else if (str == std::string("dim"))
     {
-      amoled.setBrightness(dimBrightness);
+      setScreenBrightness(dimBrightness);
     }
     else if (str == std::string("night"))
     {
-      amoled.setBrightness(nightBrightness);
+      setScreenBrightness(nightBrightness);
     }
     else if (str == std::string("bright"))
     {
-      amoled.setBrightness(dayBrightness);
+      setScreenBrightness(dayBrightness);
     }
   }
 
