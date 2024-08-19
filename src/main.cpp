@@ -168,6 +168,10 @@ const int dayBrightness = 255;
 const int nightBrightness = 50;
 const int dimBrightness = 10;
 
+const int dayBrightnessThreshold = 3000;
+const int nightBrightnessThreshold = 1000;
+
+
 char rxQueueESPNowItemBuffer[256];
 const uint8_t queueESPNowLength=20;
 
@@ -1000,8 +1004,28 @@ void loop()
           break;
         }
 
-        case 'D': // Toggle Display Brightness Day/Night
+        case 'D': // Receive current brightness from Mako
         {
+          uint16_t currentBrightnessReceived = 0;
+          memcpy(&currentBrightnessReceived,  rxQueueESPNowItemBuffer + 1, sizeof(uint16_t)) ;
+
+          if (amoled.getBrightness() != dimBrightness)
+          {
+            if (currentBrightnessReceived < nightBrightnessThreshold)
+            {
+                amoled.setBrightness(nightBrightness);
+            }
+            else if (currentBrightnessReceived > dayBrightnessThreshold)
+            {
+                amoled.setBrightness(dayBrightness);
+            }
+            else
+            {
+                // no change
+            }
+          }
+
+          /*
           uint8_t currentBrightness = amoled.getBrightness();
           switch (currentBrightness)
           {
@@ -1018,6 +1042,7 @@ void loop()
               break;
             }
           }
+          */
         }
 
         default:
