@@ -164,7 +164,9 @@ int wifiScanForeColour = TFT_BLUE;
   #define USB_SERIAL Serial
 #endif
 
-const int defaultBrightness = 255;
+const int dayBrightness = 255;
+const int nightBrightness = 50;
+const int dimBrightness = 10;
 
 char rxQueueESPNowItemBuffer[256];
 const uint8_t queueESPNowLength=20;
@@ -454,7 +456,7 @@ void setup()
 {
   dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
-  amoled.setBrightness(defaultBrightness);
+  amoled.setBrightness(dayBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
   mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
@@ -658,7 +660,7 @@ bool checkGoProButtons()
   // press second button for 10 seconds to restart
   // press second button for 5 seconds to attempt WiFi connect and enable OTA
   // press second button for 1 seconds for map legend.
-  // short press second button to start/stop track
+  // press second button for 100ms  to start/stop breadcrumb trail
   if (p_secondButton->wasReleasefor(10000))
   { 
     compositeSprite->fillSprite(TFT_RED);
@@ -998,12 +1000,31 @@ void loop()
           break;
         }
 
+        case 'D': // Toggle Display Brightness Day/Night
+        {
+          uint8_t currentBrightness = amoled.getBrightness();
+          switch (currentBrightness)
+          {
+            case dimBrightness:
+            case nightBrightness:
+            {
+              amoled.setBrightness(dayBrightness);
+              break;
+            }
+            case dayBrightness:
+            default:
+            {
+              amoled.setBrightness(nightBrightness);
+              break;
+            }
+          }
+        }
+
         default:
         {
           break;
         }
       }
-
     }
     if (!isPairedWithMako && millis() > nextBattUpdateTime)
     {
@@ -1134,11 +1155,15 @@ void loop()
     }
     else if (str == std::string("dim"))
     {
-      amoled.setBrightness(10);
+      amoled.setBrightness(dimBrightness);
+    }
+    else if (str == std::string("night"))
+    {
+      amoled.setBrightness(nightBrightness);
     }
     else if (str == std::string("bright"))
     {
-      amoled.setBrightness(255);
+      amoled.setBrightness(dayBrightness);
     }
   }
 
