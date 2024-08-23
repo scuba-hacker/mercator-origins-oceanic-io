@@ -57,8 +57,10 @@
 </div>
 
 <div class="container" style="margin-top: -10px; margin-bottom: -10px;">
+    <button class="button button-grey" id="slowerButton">-</button>
     <button class="button button-blue" id="leftButton">&#8592;</button>
     <button class="button button-blue" id="rightButton">&#8594;</button>
+    <button class="button button-grey" id="fasterButton">+</button>
 </div>
 
 <div class="container">
@@ -139,6 +141,14 @@
         handleButtonClick("downButton");
     });
 
+    document.getElementById("slowerButton").addEventListener("click", function() {
+        handleButtonClick("slowerButton");
+    });
+    
+    document.getElementById("fasterButton").addEventListener("click", function() {
+        handleButtonClick("fasterButton");
+    });
+    
     document.getElementById("trackButton").addEventListener("click", function() {
         handleButtonClick("trackButton");
     });
@@ -182,6 +192,12 @@
                 break;
             case 'ArrowDown':
                 handleButtonClick("downButton");
+                break;
+            case '-':
+                handleButtonClick("slowerButton");
+                break;
+            case '=':
+                handleButtonClick("fasterButton");
                 break;
             case 'r':
                 handleButtonClick("resetButton");

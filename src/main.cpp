@@ -45,6 +45,8 @@ bool doInitialSerialReceiveEchoTest=false;
 bool testPreCannedLatLong=false;
 bool diveTrackTest = false;
 bool diveTraceTest = false;
+uint32_t diveTraceTrackStepPause = 100;
+const uint32_t diveTraceTrackStepIncrement = 50;
 bool enableOTATimer=false;
 uint32_t otaTimerExpired = 60000;
 
@@ -165,14 +167,13 @@ int wifiScanForeColour = TFT_BLUE;
 #endif
 
 const int dayBrightness = 255;
-const int nightBrightness = 50;
+const int nightBrightness = 100;
 const int dimBrightness = 10;
 
 int currentBrightnessSet = 0;
 
-const int dayBrightnessThreshold = 3000;
-const int nightBrightnessThreshold = 1000;
-
+const int dayBrightnessThreshold = 100;
+const int nightBrightnessThreshold = 8;
 
 char rxQueueESPNowItemBuffer[256];
 const uint8_t queueESPNowLength=20;
@@ -1113,6 +1114,20 @@ void loop()
       diveTrackTest = false;
       diveTraceTest = true;
     }
+    else if (str == std::string("-") || str == std::string("slowerButton"))
+    {
+      diveTraceTrackStepPause+=diveTraceTrackStepIncrement;
+      diveTrackTest = false;
+      diveTraceTest = true;
+    }
+    else if (str == std::string("+") || str == std::string("fasterButton"))
+    {
+      if (diveTraceTrackStepPause > diveTraceTrackStepIncrement)
+        diveTraceTrackStepPause-=diveTraceTrackStepIncrement;
+      
+      diveTrackTest = false;
+      diveTraceTest = true;
+    }
     else if (str == std::string("reset") || str == std::string("resetButton"))
     {
       latitude=startLatitude;
@@ -1194,7 +1209,7 @@ void loop()
       longitude+=longitudeDelta;
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
 
-      delay(100);
+      delay(diveTraceTrackStepPause);
     }
     else if (refreshMap)
     {
@@ -1209,7 +1224,7 @@ void loop()
 
 void cycleTrackIndex()
 {
-  delay(100);
+  delay(diveTraceTrackStepPause);
   trackIndex = (trackIndex + 1) % trackLength;
 }
 
