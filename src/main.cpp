@@ -170,9 +170,10 @@ const int dayBrightness = 255;
 const int nightBrightness = 100;
 const int dimBrightness = 10;
 
+uint16_t currentBrightnessReceived = 0;
 int currentBrightnessSet = 0;
 
-const int dayBrightnessThreshold = 100;
+const int dayBrightnessThreshold = 10;
 const int nightBrightnessThreshold = 8;
 
 char rxQueueESPNowItemBuffer[256];
@@ -1018,8 +1019,7 @@ void loop()
 
         case 'D': // Receive current brightness from Mako
         {
-          uint16_t currentBrightnessReceived = 0;
-          memcpy(&currentBrightnessReceived,  rxQueueESPNowItemBuffer + 1, sizeof(uint16_t)) ;
+          currentBrightnessReceived = *(rxQueueESPNowItemBuffer + 1)+((*(rxQueueESPNowItemBuffer + 2)) << 8);
 
           if (currentBrightnessSet != dimBrightness)
           {
