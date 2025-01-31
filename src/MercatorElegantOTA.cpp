@@ -68,6 +68,11 @@ void MercatorElegantOtaClass::begin(std::queue<std::string>* httpQueue, AsyncWeb
         request->send(200, "text/plain", "Bright screen");
     });
 
+    _server->on("/sleep", HTTP_GET, [&](AsyncWebServerRequest *request){
+        _httpRequestQueue->push(std::string("sleep"));
+        request->send(200, "text/plain", "Sleep System");
+    });
+
     _server->on("/test", HTTP_GET, [&](AsyncWebServerRequest *request){
         _httpRequestQueue->push(std::string("test"));
         request->send(200, "text/html", track_and_trace_html_content);

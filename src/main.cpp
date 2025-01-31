@@ -1,19 +1,25 @@
 #include <Arduino.h>
 //#include <Wire.h>
+#include <esp_sleep.h>
+#include "driver/rtc_io.h"
 
 #include <MapScreen_T4.h>
 #include <LilyGo_AMOLED.h>
 #include <TFT_eSPI.h>
 
 #include <Adafruit_AHTX0.h>
+#ifdef COMPILE_TOF
 #include <vl53l4cx_class.h>
+#endif
 
 // 0 means not set (was previously set to A1 == 2)
 #define XSHUT_PIN 0
 
 TwoWire *DEV_I2C = &Wire;
 
+#ifdef COMPILE_TOF
 VL53L4CX sensor_vl53l4cx_sat;
+#endif
 
 #include <esp_now.h>
 #include <WiFi.h>
@@ -107,10 +113,18 @@ QueueHandle_t msgsESPNowReceivedQueue=nullptr;
 
 bool ESPNowActive = false;
 
+// Free GPIOs: 38
+
 const uint8_t BUTTON_TOP_GPIO=48;
-const uint8_t BUTTON_SIDE_GPIO=38;
+const uint8_t BUTTON_SIDE_GPIO=21;
 const uint8_t BUTTON_BOOT=0;
 const uint32_t MERCATOR_DEBOUNCE_MS=10;    
+
+const uint8_t LEAK_SENSOR_GPIO=47; // not connected
+
+const int BEAGLE_UART_RX_GPIO = 44;
+const int BEAGLE_UART_TX_GPIO = 43;
+const int BEAGLE_BAUD = 115200;
 
 Button SwitchGoProTop = Button(BUTTON_TOP_GPIO, true, MERCATOR_DEBOUNCE_MS);    // from utility/Button.h for M5 Stick C Plus
 Button SwitchGoProSide = Button(BUTTON_SIDE_GPIO, true, MERCATOR_DEBOUNCE_MS); // from utility/Button.h for M5 Stick C Plus
@@ -166,6 +180,7 @@ int wifiScanForeColour = TFT_BLUE;
   #define USB_SERIAL Serial
 #endif
 
+const int offBrightness = 0;
 const int dayBrightness = 255;
 const int nightBrightness = 100;
 const int dimBrightness = 10;
@@ -213,6 +228,7 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts);
 bool ESPNowManagePeer(esp_now_peer_info_t& peer);
 void ESPNowDeletePeer(esp_now_peer_info_t& peer);
 bool TeardownESPNow();
+void forceDeepSleep();
 
 void dumpHeapUsage(const char* msg)
 {  
@@ -227,6 +243,8 @@ void dumpHeapUsage(const char* msg)
 void testMapDisplay();
 bool disableESPNowandEnableOTA();
 void switchToPersistentOTAMode(bool clearScreen);
+
+#ifdef COMPILE_TOF
 
 /* VL53L4CX_RangeStatusCode --------------------------------------------------*/
 String VL53L4CX_RangeStatusCode(uint8_t status)
@@ -267,6 +285,7 @@ String VL53L4CX_RangeStatusCode(uint8_t status)
       return ("UNKNOWN STATUS: " + String(status));
   }
 }
+#endif
 
 /* I2CDeviceAvailable --------------------------------------------------------*/
 bool I2CDeviceAvailable(uint8_t address, TwoWire **wire)
@@ -317,10 +336,33 @@ void recoveryScreen()
     compositeSprite->fillSprite(TFT_DARKGREEN);
     resetCompositeSpriteCursor();
     compositeSprite->printf("Press Boot Button\nfor Recovery OTA\n");
+
+    PowersSY6970& power = static_cast<PowersSY6970&>(amoled);
+
+    power.setChargerConstantCurr(1024); // was 1024
+    power.disableCurrentLimitPin();
+    power.setAutoChargerTypeDetectionEnabled(false);
+    power.setCurrentInputLimit(1500);  // was 1500
+
+    uint16_t vBatt = power.getBattVoltage();
+    uint16_t constcurr = power.getChargerConstantCurr();
+    uint16_t tarvolts = power.getChargeTargetVoltage();
+    int limited = power.isEnableCurrentLimitPin();
+    uint16_t inputLimitI2C = power.getCurrentInputLimit();
+    int autoDetect = power.getAutoChargeDetectionEnabled();
+    
+    compositeSprite->printf("vBatt = %hu mV\n",vBatt);
+    compositeSprite->printf("Const Curr = %hu mA\n",constcurr);
+    compositeSprite->printf("Tar Volts = %hu mV\n",tarvolts);
+    compositeSprite->printf("Limited Pin = %i\n",limited);
+    compositeSprite->printf("Input Limit = %hu\n",inputLimitI2C);
+    compositeSprite->printf("AutoDetect = %i\n",autoDetect);
+    compositeSprite->printf("Charge = %s", power.getChargeStatusString());
+
     mapScreen->copyCompositeSpriteToDisplay();
   }
 
-  const uint32_t end = millis() + 5000;
+  const uint32_t end = millis() + 10000;
   while (end > millis())
   {
     checkGoProButtons();
@@ -412,6 +454,8 @@ void initHumiditySensor()
   ahtStatus = ahtSensor.begin(DEV_I2C);
 }
 
+#ifdef COMPILE_TOF
+
 void initToFSensor()
 {
 
@@ -459,6 +503,7 @@ void initToFSensor()
     }
   }
 }
+#endif
 
 void setScreenBrightness(uint16_t brightness)
 {
@@ -493,10 +538,6 @@ void setup()
     #endif
   }
 
-  const int BEAGLE_UART_RX_GPIO = 44;
-  const int BEAGLE_UART_TX_GPIO = 43;
-  const int BEAGLE_BAUD = 115200;
-
   Serial1.begin(BEAGLE_BAUD,SERIAL_8N1,BEAGLE_UART_RX_GPIO,BEAGLE_UART_TX_GPIO);
 
   dumpHeapUsage("Setup(): after USB serial port started ");
@@ -505,8 +546,12 @@ void setup()
 
   initI2C();
   initHumiditySensor();
+
+#ifdef COMPILE_TOF
+
   if (enableToFSensor)
     initToFSensor();
+#endif
 
   p_primaryButton = &SwitchGoProTop;
   p_secondButton = &SwitchGoProSide;
@@ -606,7 +651,7 @@ bool disableESPNowandEnableOTA()
   compositeSprite->fillSprite(otaScreenBackColour);
   resetCompositeSpriteCursor();
   compositeSprite->println("Start\n  OTA\n\n");
-  delay(1000);
+  delay(250);
   const int maxWifiScanAttempts = 3;
   connectToWiFiAndInitOTA(wifiOnly,maxWifiScanAttempts);
 
@@ -653,6 +698,14 @@ bool checkGoProButtons()
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   */
+
+  // press both buttons for 1 second for deep sleep, side button to wake-up
+  if (p_primaryButton->pressedFor(1000) && 
+      p_secondButton->pressedFor(1000))
+  {
+    forceDeepSleep();
+  }
+
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
   if (p_primaryButton->wasReleasefor(100))
   {
@@ -678,6 +731,7 @@ bool checkGoProButtons()
   // press second button for 5 seconds to attempt WiFi connect and enable OTA
   // press second button for 1 seconds for map legend.
   // press second button for 100ms  to start/stop breadcrumb trail
+  // press second button for 100ms at boot recovery screen to put ESP32 into deep sleep for charging
   if (p_secondButton->wasReleasefor(10000))
   { 
     compositeSprite->fillSprite(TFT_RED);
@@ -710,11 +764,18 @@ bool checkGoProButtons()
   // Toggle Breadcrumb Trail
   else if (p_secondButton->wasReleasefor(100))
   {
-    activationTime = lastSecondButtonPressLasted;
-    buttonTop = false;
-    changeMade = true;
-
-    mapScreen->toggleRecordBreadCrumbTrail();
+    if (msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
+    {
+      forceDeepSleep();
+      // never goes beyond here
+    }
+    else
+    {
+      activationTime = lastSecondButtonPressLasted;
+      buttonTop = false;
+      changeMade = true;
+      mapScreen->toggleRecordBreadCrumbTrail();
+    }
   }
 
   if (BootButton.isPressed())
@@ -830,6 +891,7 @@ void acquireHumidityAndTemperatureReadings()
     mapScreen->setHumidityAndTemp(relative_humidity,temperature);
 }
 
+#ifdef COMPILE_TOF
 void acquireLidarDistanceReading()
 {
   if (!tofStatus)
@@ -909,14 +971,17 @@ void acquireLidarDistanceReading()
 
   newLidarDataReady = 0;
 }
+#endif
 
 void loop()
 { 
+  #ifdef COMPILE_TOF
   if (enableToFSensor && millis() > nextToFSensorTime)
   {
     nextToFSensorTime = millis() + timeBetweenToFReads;
     acquireLidarDistanceReading();
   }
+  #endif
 
   if (millis() > nextReadHumiditySensorTime)
   {
@@ -1193,6 +1258,11 @@ void loop()
     {
       setScreenBrightness(dayBrightness);
     }
+    else if (str == std::string("sleep"))
+    {
+      forceDeepSleep();
+      // never goes beyond here
+    }
   }
 
   if (diveTrackTest)
@@ -1244,27 +1314,26 @@ void switchToPersistentOTAMode(bool clearScreen)
     uint32_t end = millis()+waitPeriod;
     String status, prevStatus;
     int line=0;
-    while (end < millis())
+    while (end > millis())
     {
-      String status = amoled.getChargeStatusString();
+//      String status = amoled.getChargeStatusString();
 
-      if (status != prevStatus)
-      {
         uint16_t vbus = amoled.getVbusVoltage();
         uint16_t vbatt = amoled.getBattVoltage();
         uint16_t vsys = amoled.getSystemVoltage();
 
-        compositeSprite->printf("%s\n\nvbus:  %.3f\nvbatt: %.3f\nvsys:   %.3f\n", status.c_str(),vbus/1000.0,vbatt/1000.0,vsys/1000.0);
+        compositeSprite->printf("vbus %.3f vbatt %.3fvsys %.3f\n", vbus/1000.0,vbatt/1000.0,vsys/1000.0);
         mapScreen->copyCompositeSpriteToDisplay();
         if (line++ == 7)
         {
           line = 0;
-          compositeSprite->fillSprite(otaScreenBackColour);
-          compositeSprite->setCursor(0,30);
+          compositeSprite->fillSprite(wifiScanBackColour);
+          resetCompositeSpriteCursor();
+          compositeSprite->setTextColor(wifiScanForeColour, wifiScanBackColour);
         }
-        prevStatus = status;
-        delay(500);
-      }
+//        prevStatus = status;
+        delay(2000);
+
       checkGoProButtons();
     }
 }
@@ -1653,12 +1722,12 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
 
     if (!network)
     {
-      delay(1000);
+      delay(500);
       continue;
     }
   
     int connectToFoundNetworkAttempts = 3;
-    const int repeatDelay = 1000;
+    const int repeatDelay = 500;
       
     if (strcmp(network,ssid_1) == 0)
     {
@@ -1677,7 +1746,7 @@ bool connectToWiFiAndInitOTA(const bool wifiOnly, int repeatScanAttempts)
     }
     
     checkGoProButtons();
-    delay(1000);
+    delay(500);
   }
 
   bool connected=WiFi.status() == WL_CONNECTED;
@@ -1958,4 +2027,23 @@ void ESPNowDeletePeer(esp_now_peer_info_t& peer)
       }
     }
   }
+}
+
+void forceDeepSleep()
+{
+  // put ESP32 into deep sleep - faster charging
+  compositeSprite->fillSprite(TFT_RED);
+  resetCompositeSpriteCursor();
+  compositeSprite->print("Sleep for Charging...");
+  mapScreen->copyCompositeSpriteToDisplay();
+  delay(3000);
+
+  setScreenBrightness(offBrightness);
+  WiFi.mode(WIFI_MODE_NULL);  // disable wifi
+  amoled.sleep();
+
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_SIDE_GPIO, 0);  //1 = High, 0 = Low
+
+  esp_deep_sleep_start();
+  // never goes beyond here
 }
