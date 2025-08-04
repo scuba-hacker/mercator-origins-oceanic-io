@@ -12,6 +12,76 @@
 #include <vl53l4cx_class.h>
 #endif
 
+/*
+Documentation needed:
+
+Button Controls
+
+  // press both buttons for 1 second for deep sleep, side button to wake-up
+  // tap   top button cycle zoom if not at startup, otherwise activate OTA.
+
+  // press side button for 10 seconds to restart
+  // press side button for 5 seconds to attempt WiFi connect and enable OTA
+  // press side button for 1 seconds for map legend.
+  // press side button for 100ms  to start/stop breadcrumb trail
+  // press side button for 100ms at boot recovery screen to put ESP32 into deep sleep for charging
+
+Serial Commands
+
+serial-off
+serial-on
+
+
+HTTP Endpoints
+
+/boot      reboot
+/track     run track test - diver follows recorded route
+/trace     run trace test - user controls diver
+/up        diver North
+/do        diver South
+/le        diver West
+/ri        diver East
+/stop      stop running track/trace
+/reset     back to start of track/trace test
+/dim       Dim   brightness
+/night     Night brightness
+/bright    Max Brightness
+/sleep     Deep Sleep for battery charging
+/test      no function - logging only
+
+Additional web page button controls
+
+Key         Button Message
+-           Slower
++/=         Faster
+r           reset
+s           stop
+k           track
+c           trace
+UP          upButton
+DOWN        downButton
+LEFT        leftButton
+RIGHT       rightButton
+u           updateButton
+0           allButton
+1           x1Button
+2           x2Button
+3           x3Button
+4           x4Button
+            startSerialButton
+            stopSerialButton
+
+ESPNow Commands 
+
+BY        - recording breadcrumb trail
+BN        - not recording breadcrumb trail
+T<string> - test message
+R<T|B><t> - Button activation (T)op and (B)ottom, followed by milliseconds
+
+Additional to add - add pin placed.
+
+*/
+
 // 0 means not set (was previously set to A1 == 2)
 #define XSHUT_PIN 0
 
@@ -44,7 +114,7 @@ VL53L4CX sensor_vl53l4cx_sat;
 
 #include "Button.h"
 
-bool writeLogToSerial=false;
+bool writeLogToSerial=true;
 bool enableToFSensor=false;
 bool doInitialSerialTransmitTest=false;
 bool doInitialSerialReceiveEchoTest=false;
@@ -516,10 +586,23 @@ void setScreenBrightness(uint16_t brightness)
 
 void setup()
 {
+ if (writeLogToSerial)
+  {
+    #ifndef USE_WEBSERIAL
+      USB_SERIAL.begin(115200);
+      Serial.flush();
+      delay(50);
+    #endif
+  }
+  
   dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
   setScreenBrightness(dayBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
+
+  if (writeLogToSerial)
+    USB_SERIAL.println("created MapScreen_T4");
+
   mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
   compositeSprite = &mapScreen->getCompositeSprite();
@@ -529,14 +612,7 @@ void setup()
 
   dumpHeapUsage("Setup(): after amoled.begin() ");
 
-  if (writeLogToSerial)
-  {
-    #ifndef USE_WEBSERIAL
-      USB_SERIAL.begin(115200);
-      Serial.flush();
-      delay(50);
-    #endif
-  }
+ 
 
   Serial1.begin(BEAGLE_BAUD,SERIAL_8N1,BEAGLE_UART_RX_GPIO,BEAGLE_UART_TX_GPIO);
 
@@ -698,7 +774,6 @@ bool checkGoProButtons()
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   */
-
   // press both buttons for 1 second for deep sleep, side button to wake-up
   if (p_primaryButton->pressedFor(1000) && 
       p_secondButton->pressedFor(1000))
@@ -1027,6 +1102,11 @@ void loop()
             strncpy(previousTarget,currentTarget,sizeof(previousTarget));
             strncpy(currentTarget,rxQueueESPNowItemBuffer+currentTargetOffset,sizeof(currentTarget));
             refreshTargetShown = true;
+          }
+
+          if (!mapScreen->isLocationInitialised())
+          {
+            mapScreen->setLocationLatLong(latitude, longitude);
           }
 
           if (writeLogToSerial)
