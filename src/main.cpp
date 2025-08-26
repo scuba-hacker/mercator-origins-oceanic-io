@@ -12,6 +12,11 @@
 #include <vl53l4cx_class.h>
 #endif
 
+/* 
+
+BUGS:
+1. sleep for charging ends up waking up quickly
+*/
 /*
 Documentation needed:
 
