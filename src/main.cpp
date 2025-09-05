@@ -1,5 +1,14 @@
 #include <Arduino.h>
-//#include <Wire.h>
+
+/////////////////// DIAG SERIAL SETTINGS /////////////////////
+bool writeLogToSerial=true;
+
+// #define USE_WEBSERIAL
+#ifdef USE_WEBSERIAL
+#include <WebSerial.h>
+#endif
+//////////////////////////////////////////////////////////////
+
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
 
@@ -39,7 +48,7 @@ serial-on
 
 HTTP Endpoints
 
-/boot      reboot
+/test      Home Page - all diagnostics and tests
 /track     run track test - diver follows recorded route
 /trace     run trace test - user controls diver
 /up        diver North
@@ -52,7 +61,7 @@ HTTP Endpoints
 /night     Night brightness
 /bright    Max Brightness
 /sleep     Deep Sleep for battery charging
-/test      no function - logging only
+/boot      reboot
 
 Additional web page button controls
 
@@ -110,16 +119,8 @@ VL53L4CX sensor_vl53l4cx_sat;
 // rename the git file "mercator_secrets_template.c" to the filename below, filling in your wifi credentials etc.
 #include "mercator_secrets.c"
 
-//#define USE_WEBSERIAL
-
-
-#ifdef USE_WEBSERIAL
-#include <WebSerial.h>
-#endif
-
 #include "Button.h"
 
-bool writeLogToSerial=true;
 bool enableToFSensor=false;
 bool doInitialSerialTransmitTest=false;
 bool doInitialSerialReceiveEchoTest=false;
@@ -128,8 +129,6 @@ bool diveTrackTest = false;
 bool diveTraceTest = false;
 uint32_t diveTraceTrackStepPause = 100;
 const uint32_t diveTraceTrackStepIncrement = 50;
-bool enableOTATimer=false;
-uint32_t otaTimerExpired = 60000;
 
 const bool correctForReversedCompassTrackTest = true;
 
@@ -318,6 +317,8 @@ void dumpHeapUsage(const char* msg)
 void testMapDisplay();
 bool disableESPNowandEnableOTA();
 void switchToPersistentOTAMode(bool clearScreen);
+void processReceivedESPNowMessages();
+bool processReceivedHTTPRequests();
 
 #ifdef COMPILE_TOF
 
@@ -589,6 +590,10 @@ void setScreenBrightness(uint16_t brightness)
   }
 }
 
+// Greenwich, London
+const double defaultLatitude = 51.4934;
+const double defaultLongitude = 0.0;
+
 void setup()
 {
  if (writeLogToSerial)
@@ -617,8 +622,6 @@ void setup()
 
   dumpHeapUsage("Setup(): after amoled.begin() ");
 
- 
-
   Serial1.begin(BEAGLE_BAUD,SERIAL_8N1,BEAGLE_UART_RX_GPIO,BEAGLE_UART_TX_GPIO);
 
   dumpHeapUsage("Setup(): after USB serial port started ");
@@ -633,6 +636,9 @@ void setup()
   if (enableToFSensor)
     initToFSensor();
 #endif
+
+  if (mapScreen)
+    mapScreen->setLocationLatLong(defaultLatitude, defaultLongitude);
 
   p_primaryButton = &SwitchGoProTop;
   p_secondButton = &SwitchGoProSide;
@@ -739,6 +745,107 @@ bool disableESPNowandEnableOTA()
   return true;
 }
 
+
+bool checkForDualButtonPresses()
+{
+  static bool action1000msReached = false;
+  static bool action3000msReached = false;
+  static bool action8000msReached = false;
+  static bool anyActionTriggered = false;
+  static uint32_t lastActionTime = 0;
+  
+  bool triggered = false;
+  
+  // Prevent any action within 10 seconds of the last action
+  if (millis() - lastActionTime < 10000)
+  {
+    return false;
+  }
+  
+  // Check if both buttons are currently pressed
+  bool bothPressed = p_primaryButton->isPressed() && p_secondButton->isPressed();
+  
+  if (!bothPressed)
+  {
+    // Buttons released - check which action to trigger based on how long they were held
+    if (!anyActionTriggered && (action1000msReached || action3000msReached || action8000msReached))
+    {
+      anyActionTriggered = true;  // Set this first to prevent re-entry
+      lastActionTime = millis();  // Record time of action execution
+      
+      if (action8000msReached)
+      {
+        // 8 second hold completed - reboot
+        // esp_restart();
+        triggered = true;
+      }
+      else if (action3000msReached)
+      {
+        // 3 second hold completed - toggle diagnostic screens
+        // skipDiagnosticDisplays = !skipDiagnosticDisplays;
+        // saveToEEPROMSkipDiagnosticDisplays();  // Save to EEPROM
+        // M5.Lcd.setCursor(5, M5.Lcd.height() - 90);
+        // M5.Lcd.printf("Skip Mode: %s", skipDiagnosticDisplays ? "ON" : "OFF");
+        compositeSprite->fillSprite(TFT_GREENYELLOW);
+        resetCompositeSpriteCursor();
+        compositeSprite->print("3s Both Buttons");
+        mapScreen->copyCompositeSpriteToDisplay();
+        delay(800);
+        triggered = true;
+      }
+      else if (action1000msReached)
+      {
+        // 0.5 second hold completed - OTA mode
+//        static uint32_t lastOTAToggle = 0;
+//        if (millis() - lastOTAToggle > 5000)  // Prevent rapid OTA toggles
+//        {
+//          lastOTAToggle = millis();
+//          toggleOTAActive();
+//        }
+
+        compositeSprite->fillSprite(TFT_BLUE);
+        resetCompositeSpriteCursor();
+        compositeSprite->print("1s Both Buttons");
+        mapScreen->copyCompositeSpriteToDisplay();
+        delay(800);
+        triggered = true;
+      }
+    }
+    
+    // Only reset flags if both buttons are completely released
+    if (p_primaryButton->isReleased() && p_secondButton->isReleased())
+    {
+      action1000msReached = false;
+      action3000msReached = false;
+      action8000msReached = false;
+      anyActionTriggered = false;
+    }
+    
+    return triggered;
+  }
+  
+  // Buttons are pressed - track which thresholds have been reached
+  // Only set the highest threshold reached to ensure mutual exclusivity
+  if (p_primaryButton->pressedFor(8000) && p_secondButton->pressedFor(8000))
+  {
+    action8000msReached = true;
+    action3000msReached = false;  // Clear lower thresholds
+    action1000msReached = false;
+  }
+  else if (p_primaryButton->pressedFor(3000) && p_secondButton->pressedFor(3000))
+  {
+    action3000msReached = true;
+    action1000msReached = false;   // Clear lower threshold
+  }
+  else if (p_primaryButton->pressedFor(500) && p_secondButton->pressedFor(500))
+  {
+    action1000msReached = true;
+  }
+
+  return false; // No action triggered while buttons are still pressed
+}
+
+
 bool checkGoProButtons()
 {
   bool changeMade = false;
@@ -779,13 +886,18 @@ bool checkGoProButtons()
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   */
+/*
   // press both buttons for 1 second for deep sleep, side button to wake-up
   if (p_primaryButton->pressedFor(1000) && 
       p_secondButton->pressedFor(1000))
   {
     forceDeepSleep();
   }
+*/
 
+  if (checkForDualButtonPresses())
+    return true;
+  
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
   if (p_primaryButton->wasReleasefor(100))
   {
@@ -794,6 +906,7 @@ bool checkGoProButtons()
       activationTime = lastPrimaryButtonPressLasted;
       buttonTop = true;
       changeMade = true;
+
       const bool clearScreen = true;
       switchToPersistentOTAMode(clearScreen);
     }
@@ -822,7 +935,7 @@ bool checkGoProButtons()
     delay(10000);
     esp_restart();
   }
-  else if (p_secondButton->wasReleasefor(5000))
+  else if (p_secondButton->wasReleasefor(2000))
   { 
     activationTime = lastSecondButtonPressLasted;
     buttonTop = false;
@@ -832,7 +945,7 @@ bool checkGoProButtons()
     changeMade = true;
   }
   // Display Map Legend
-  else if (p_secondButton->wasReleasefor(1000))
+  else if (p_secondButton->wasReleasefor(500))
   {
     activationTime = lastSecondButtonPressLasted;
     buttonTop = false;
@@ -1053,6 +1166,9 @@ void acquireLidarDistanceReading()
 }
 #endif
 
+void readSensors();
+void executeTests(bool refreshMap);
+
 void loop()
 { 
   #ifdef COMPILE_TOF
@@ -1063,12 +1179,29 @@ void loop()
   }
   #endif
 
+  readSensors();
+
+  processReceivedESPNowMessages();
+
+  checkGoProButtons();
+
+  bool refreshMap = processReceivedHTTPRequests();
+
+  if (diveTrackTest || diveTraceTest)
+    executeTests(refreshMap);
+}
+
+void readSensors()
+{
   if (millis() > nextReadHumiditySensorTime)
   {
     nextReadHumiditySensorTime = millis() + timeBetweenHumidityReads;
     acquireHumidityAndTemperatureReadings();
   }
+}
 
+void processReceivedESPNowMessages()
+{  
   // do not process queued messages if ota is active, mapscreen is deleted and espnow will be shutdown anyway.
   if (msgsESPNowReceivedQueue && !otaActive)
   {
@@ -1202,19 +1335,11 @@ void loop()
       mapScreen->copyCompositeSpriteToDisplay();
     }
   }
+}
 
-  // for dev without buttons attached to device.
-  if (enableOTATimer && otaTimerExpired < millis())
-  {
-    if (writeLogToSerial)
-      USB_SERIAL.println("disable ESP Now, enable OTA");
-    switchToPersistentOTAMode(true);
-  }
-
-  checkGoProButtons();
-
+bool processReceivedHTTPRequests()
+{
   bool refreshMap = false;
-
   if (!httpQueue.empty())
   {
     std::string str = httpQueue.back();
@@ -1350,7 +1475,12 @@ void loop()
     }
   }
 
-  if (diveTrackTest)
+  return refreshMap;
+}
+
+void executeTests(bool refreshMap)
+{
+   if (diveTrackTest)
   {
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h + (correctForReversedCompassTrackTest ? 180 : 0));
     cycleTrackIndex();
@@ -1395,31 +1525,33 @@ void switchToPersistentOTAMode(bool clearScreen)
     compositeSprite->println("Ready for OTA update\n");
     mapScreen->copyCompositeSpriteToDisplay();
 
-    uint32_t waitPeriod = 5000;
-    uint32_t end = millis()+waitPeriod;
-    String status, prevStatus;
-    int line=0;
-    while (end > millis())
+    const bool showPowerStatus = false;
+
+    if (showPowerStatus)
     {
-//      String status = amoled.getChargeStatusString();
+      uint32_t waitPeriod = 5000;
+      uint32_t end = millis()+waitPeriod;
+      String status, prevStatus;
+      int line=0;
+      while (end > millis())
+      {
+          uint16_t vbus = amoled.getVbusVoltage();
+          uint16_t vbatt = amoled.getBattVoltage();
+          uint16_t vsys = amoled.getSystemVoltage();
 
-        uint16_t vbus = amoled.getVbusVoltage();
-        uint16_t vbatt = amoled.getBattVoltage();
-        uint16_t vsys = amoled.getSystemVoltage();
+          compositeSprite->printf("vbus %.3f vbatt %.3fvsys %.3f\n", vbus/1000.0,vbatt/1000.0,vsys/1000.0);
+          mapScreen->copyCompositeSpriteToDisplay();
+          if (line++ == 7)
+          {
+            line = 0;
+            compositeSprite->fillSprite(wifiScanBackColour);
+            resetCompositeSpriteCursor();
+            compositeSprite->setTextColor(wifiScanForeColour, wifiScanBackColour);
+          }
+          delay(2000);
 
-        compositeSprite->printf("vbus %.3f vbatt %.3fvsys %.3f\n", vbus/1000.0,vbatt/1000.0,vsys/1000.0);
-        mapScreen->copyCompositeSpriteToDisplay();
-        if (line++ == 7)
-        {
-          line = 0;
-          compositeSprite->fillSprite(wifiScanBackColour);
-          resetCompositeSpriteCursor();
-          compositeSprite->setTextColor(wifiScanForeColour, wifiScanBackColour);
-        }
-//        prevStatus = status;
-        delay(2000);
-
-      checkGoProButtons();
+        checkGoProButtons();
+      }
     }
 }
 
