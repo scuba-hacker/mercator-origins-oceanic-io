@@ -3,7 +3,7 @@
 /////////////////// DIAG SERIAL SETTINGS /////////////////////
 bool writeLogToSerial=true;
 
-// #define USE_WEBSERIAL
+//#define USE_WEBSERIAL
 #ifdef USE_WEBSERIAL
 #include <WebSerial.h>
 #endif
@@ -438,7 +438,7 @@ void recoveryScreen()
     mapScreen->copyCompositeSpriteToDisplay();
   }
 
-  const uint32_t end = millis() + 10000;
+  const uint32_t end = millis() + 3000;
   while (end > millis())
   {
     checkGoProButtons();
@@ -590,9 +590,8 @@ void setScreenBrightness(uint16_t brightness)
   }
 }
 
-// Greenwich, London
-const double defaultLatitude = 51.4934;
-const double defaultLongitude = 0.0;
+const double uninitialisedLatitude = 0.0;
+const double uninitialisedLongitude = 0.0;
 
 void setup()
 {
@@ -638,7 +637,7 @@ void setup()
 #endif
 
   if (mapScreen)
-    mapScreen->setLocationLatLong(defaultLatitude, defaultLongitude);
+    mapScreen->setLocationLatLong(uninitialisedLatitude, uninitialisedLongitude);
 
   p_primaryButton = &SwitchGoProTop;
   p_secondButton = &SwitchGoProSide;
@@ -1243,9 +1242,7 @@ void processReceivedESPNowMessages()
           }
 
           if (!mapScreen->isLocationInitialised())
-          {
             mapScreen->setLocationLatLong(latitude, longitude);
-          }
 
           if (writeLogToSerial)
           {
