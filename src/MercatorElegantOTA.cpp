@@ -79,7 +79,7 @@ void MercatorElegantOtaClass::begin(std::queue<std::string>* httpQueue, AsyncWeb
     });
 
     _server->on("/test", HTTP_POST, [&](AsyncWebServerRequest *request){
-            AsyncWebParameter* p = request->getParam("button",true,false);
+            const AsyncWebParameter* p = request->getParam("button",true,false);
             if (p)
             {
                 _httpRequestQueue->push(p->value().c_str());

@@ -153,6 +153,7 @@ void cycleTrackIndex();
 #define MERCATOR_OTA_DEVICE_LABEL "OCEANIC-IO"
 
 #include <Update.h>             // OTA updates
+//
 #include <AsyncTCP.h>           // OTA updates
 #include <ESPAsyncWebServer.h>  // OTA updates
 #include <MercatorElegantOTA.h>    // OTA updates
@@ -415,17 +416,20 @@ void recoveryScreen()
 
     PowersSY6970& power = static_cast<PowersSY6970&>(amoled);
 
-    power.setChargerConstantCurr(1024); // was 1024
-    power.disableCurrentLimitPin();
-    power.setAutoChargerTypeDetectionEnabled(false);
-    power.setCurrentInputLimit(1500);  // was 1500
+//    power.setChargerConstantCurr(1024); // was 1024
+//    power.disableCurrentLimitPin();
+//    power.setAutoChargerTypeDetectionEnabled(false);
+//    power.setCurrentInputLimit(1500);  // was 1500
 
     uint16_t vBatt = power.getBattVoltage();
     uint16_t constcurr = power.getChargerConstantCurr();
     uint16_t tarvolts = power.getChargeTargetVoltage();
-    int limited = power.isEnableCurrentLimitPin();
-    uint16_t inputLimitI2C = power.getCurrentInputLimit();
-    int autoDetect = power.getAutoChargeDetectionEnabled();
+    int limited = 0;
+    uint16_t inputLimitI2C = 0;
+    int autoDetect = 0;
+//    int limited = power.isEnableCurrentLimitPin();
+//    uint16_t inputLimitI2C = power.getCurrentInputLimit();
+//    int autoDetect = power.getAutoChargeDetectionEnabled();
     
     compositeSprite->printf("vBatt = %hu mV\n",vBatt);
     compositeSprite->printf("Const Curr = %hu mA\n",constcurr);
@@ -1240,6 +1244,17 @@ void processReceivedESPNowMessages()
             strncpy(currentTarget,rxQueueESPNowItemBuffer+currentTargetOffset,sizeof(currentTarget));
             refreshTargetShown = true;
           }
+
+          // override latitude and longitude - this is the original GPS location
+          //._lat = 51.066017, ._long = 1.270883},
+          // MBJMBJ - override lat long to dover wreck site
+          
+//          latitude = 51.066016;
+  //        longitude = 1.270880;
+
+          // 20 metres south and 20 metres east of the central point
+    //      latitude = 51.065836224;
+      //    longitude = 1.271165315;
 
           if (!mapScreen->isLocationInitialised())
             mapScreen->setLocationLatLong(latitude, longitude);
