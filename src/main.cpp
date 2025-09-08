@@ -597,6 +597,8 @@ void setScreenBrightness(uint16_t brightness)
 const double uninitialisedLatitude = 0.0;
 const double uninitialisedLongitude = 0.0;
 
+bool  setupComplete = false;
+
 void setup()
 {
  if (writeLogToSerial)
@@ -615,7 +617,7 @@ void setup()
 
   if (writeLogToSerial)
     USB_SERIAL.println("created MapScreen_T4");
-
+    
   mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
   compositeSprite = &mapScreen->getCompositeSprite();
@@ -671,7 +673,7 @@ void setup()
     mapScreen->copyCompositeSpriteToDisplay();
     // defer pairing with mako for sending messages to mako until first message received from mako.
   }
-
+  setupComplete = true;
   dumpHeapUsage("Setup(): end ");
 }
 
@@ -904,7 +906,7 @@ bool checkGoProButtons()
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
   if (p_primaryButton->wasReleasefor(100))
   {
-    if (msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
+    if (!setupComplete) // null before recovery ota screen done at startup
     {
       activationTime = lastPrimaryButtonPressLasted;
       buttonTop = true;
@@ -948,7 +950,7 @@ bool checkGoProButtons()
     changeMade = true;
   }
   // Display Map Legend
-  else if (p_secondButton->wasReleasefor(500))
+  else if (setupComplete && p_secondButton->wasReleasefor(500))
   {
     activationTime = lastSecondButtonPressLasted;
     buttonTop = false;
@@ -960,8 +962,10 @@ bool checkGoProButtons()
   // Toggle Breadcrumb Trail
   else if (p_secondButton->wasReleasefor(100))
   {
-    if (msgsESPNowReceivedQueue == nullptr) // null before recovery ota screen done at startup
+    if (!setupComplete) // null before recovery ota screen done at startup
     {
+      delay(1000);
+      updateButtons();
       forceDeepSleep();
       // never goes beyond here
     }
@@ -2271,6 +2275,11 @@ void forceDeepSleep()
   WiFi.mode(WIFI_MODE_NULL);  // disable wifi
   amoled.sleep();
 
+// Add before esp_sleep_enable_ext0_wakeup
+  rtc_gpio_init((gpio_num_t)BUTTON_SIDE_GPIO);
+  rtc_gpio_set_direction((gpio_num_t)BUTTON_SIDE_GPIO, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pullup_en((gpio_num_t)BUTTON_SIDE_GPIO);
+  rtc_gpio_pulldown_dis((gpio_num_t)BUTTON_SIDE_GPIO);
   esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_SIDE_GPIO, 0);  //1 = High, 0 = Low
 
   esp_deep_sleep_start();
