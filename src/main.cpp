@@ -232,11 +232,19 @@ std::unique_ptr<MapScreen_T4> mapScreen;
 
 TFT_eSprite* compositeSprite = nullptr;
 
-const double startLatitude = 51.4605855;    // lightning boat
-const double startLongitude=-0.548316;
 
-double latitude  = startLatitude;    // lightning boat
-double longitude = startLongitude;
+const double uninitialisedLatitude = 0.0;
+const double uninitialisedLongitude = 0.0;
+
+const double startTraceTestLatitude = 51.4605855;    // lightning boat
+const double startTraceTestLongitude=-0.548316;
+
+//double latitude  = startTraceTestLatitude;    // lightning boat
+//double longitude = startTraceTestLongitude;
+
+double latitude = uninitialisedLatitude;
+double longitude = uninitialisedLongitude;
+
 double heading=0.0;
 
 double latitudeDelta = 0.0;
@@ -593,9 +601,6 @@ void setScreenBrightness(uint16_t brightness)
     currentBrightnessSet = brightness;
   }
 }
-
-const double uninitialisedLatitude = 0.0;
-const double uninitialisedLongitude = 0.0;
 
 bool  setupComplete = false;
 
@@ -956,7 +961,7 @@ bool checkGoProButtons()
     buttonTop = false;
     changeMade = true;
 
-    mapScreen->displayMapLegend();
+    mapScreen->displayMapLegend();    // two second blocking display of legend screen -
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   // Toggle Breadcrumb Trail
@@ -1260,8 +1265,7 @@ void processReceivedESPNowMessages()
     //      latitude = 51.065836224;
       //    longitude = 1.271165315;
 
-          if (!mapScreen->isLocationInitialised())
-            mapScreen->setLocationLatLong(latitude, longitude);
+          mapScreen->setLocationLatLong(latitude, longitude);
 
           if (writeLogToSerial)
           {
@@ -1370,8 +1374,9 @@ bool processReceivedHTTPRequests()
     }
     else if (str == std::string("trace") || str == std::string("traceButton"))
     {
-      latitude=startLatitude;
-      longitude=startLongitude;
+      latitude=startTraceTestLatitude;
+      longitude=startTraceTestLongitude;
+      mapScreen->setLocationLatLong(latitude,longitude);
       diveTrackTest = false;
       diveTraceTest = true;
       latitudeDelta = 0;
@@ -1382,6 +1387,7 @@ bool processReceivedHTTPRequests()
     {
       latitudeDelta=0.00002;
       longitudeDelta=0;
+      diveTrackTest = false;
       diveTraceTest = true;
     }
     else if (str == std::string("d") || str == std::string("downButton"))
@@ -1421,9 +1427,10 @@ bool processReceivedHTTPRequests()
     }
     else if (str == std::string("reset") || str == std::string("resetButton"))
     {
-      latitude=startLatitude;
-      longitude=startLongitude;
+      latitude=startTraceTestLatitude;
+      longitude=startTraceTestLongitude;
       diveTrackTest = false;
+      diveTraceTest = false;
       refreshMap = true;
     }
     else if (str == std::string("stop") || str == std::string("stopButton"))
@@ -1431,6 +1438,7 @@ bool processReceivedHTTPRequests()
       latitudeDelta=0;
       longitudeDelta=0;
       diveTrackTest = false;
+      diveTraceTest = true;
     }
     else if (str == std::string("allButton"))
     {
