@@ -246,6 +246,11 @@ double latitude = uninitialisedLatitude;
 double longitude = uninitialisedLongitude;
 
 double heading=0.0;
+uint32_t x_message_flags = 0;
+uint32_t X_MESSAGE_FIX_FLAG = 0x01;
+float  depth=0.0;
+bool locationHasFix = false;
+int fixMessagesReceived = 0, noFixMessagesReceived = 0;
 
 double latitudeDelta = 0.0;
 double longitudeDelta = 0.0;
@@ -1093,7 +1098,7 @@ void acquireHumidityAndTemperatureReadings()
       temperature = temp.temperature;
     }
 
-    mapScreen->setHumidityAndTemp(relative_humidity,temperature);
+    mapScreen->setHumidityTempDepth(relative_humidity,temperature,depth);
 }
 
 #ifdef COMPILE_TOF
@@ -1234,7 +1239,9 @@ void processReceivedESPNowMessages()
           const int latitudeOffset = 8;
           const int longitudeOffset = 16;
           const int headingOffset = 24;
-          const int currentTargetOffset = 32;
+          const int depthOffset = 32;
+          const int x_message_flags_offset = 36;
+          const int currentTargetOffset = 40;
                     
           char targetCode[7];
 
@@ -1243,9 +1250,36 @@ void processReceivedESPNowMessages()
           double old_heading = heading;
 
           strncpy(targetCode,rxQueueESPNowItemBuffer + targetCodeOffset,sizeof(targetCode));
+          targetCode[sizeof(targetCode) - 1] = '\0';  // Guarantee null termination
           memcpy(&latitude,  rxQueueESPNowItemBuffer + latitudeOffset,  sizeof(double));
           memcpy(&longitude, rxQueueESPNowItemBuffer + longitudeOffset, sizeof(double));
           memcpy(&heading,   rxQueueESPNowItemBuffer + headingOffset, sizeof(double));
+          memcpy(&depth,   rxQueueESPNowItemBuffer + depthOffset, sizeof(float));
+          memcpy(&x_message_flags,   rxQueueESPNowItemBuffer + x_message_flags_offset, sizeof(uint32_t));
+
+          locationHasFix = x_message_flags & X_MESSAGE_FIX_FLAG;
+
+          if (locationHasFix)
+            fixMessagesReceived++;
+          else
+            noFixMessagesReceived++;
+
+          if (!fixMessagesReceived)
+          {
+            USB_SERIAL.println("Received Location X Message: First fix not received.\n");
+            compositeSprite->setTextColor(TFT_YELLOW,espScanBackColour);
+            compositeSprite->fillSprite(espScanBackColour);
+            compositeSprite->setTextWrap(false,true);
+            compositeSprite->printf("\nAwaiting first fix\nNo Fix messages received: %d\n",noFixMessagesReceived);
+            mapScreen->copyCompositeSpriteToDisplay();
+
+            return;
+          }
+          else
+          {
+            if (fixMessagesReceived == 1)
+              compositeSprite->setTextWrap(false,false);
+          }
 
           if (strcmp(rxQueueESPNowItemBuffer+currentTargetOffset,currentTarget) != 0)
           {
