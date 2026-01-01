@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 /////////////////// DIAG SERIAL SETTINGS /////////////////////
-bool writeLogToSerial=true;
+bool writeLogToSerial=false;
 
 //#define USE_WEBSERIAL
 #ifdef USE_WEBSERIAL
@@ -302,6 +302,7 @@ void resetClock();
 const char* scanForKnownNetwork();
 bool setupOTAWebServer(const char* _ssid, const char* _password, const char* label, uint32_t timeout, bool wifiOnly = false);
 void toggleOTAActiveAndWifiIfUSBPowerOff();
+void clearButtons();
 void updateButtons();
 void readAndTestGoProSwitches();
 void InitESPNow();
@@ -416,6 +417,7 @@ void startupScreen()
     resetCompositeSpriteCursor();
     compositeSprite->printf("Initialising Sensors...");
     mapScreen->copyCompositeSpriteToDisplay();
+    delay(1000);
   }
 }
 
@@ -658,6 +660,8 @@ void setup()
   p_primaryButton = &SwitchGoProTop;
   p_secondButton = &SwitchGoProSide;
 
+  clearButtons();
+  
   recoveryScreen();
 
   msgsESPNowReceivedQueue = xQueueCreate(queueESPNowLength,sizeof(rxQueueESPNowItemBuffer));
@@ -950,7 +954,7 @@ bool checkGoProButtons()
     delay(10000);
     esp_restart();
   }
-  else if (p_secondButton->wasReleasefor(2000))
+  else if (p_secondButton->wasReleasefor(5000))
   { 
     activationTime = lastSecondButtonPressLasted;
     buttonTop = false;
@@ -960,7 +964,7 @@ bool checkGoProButtons()
     changeMade = true;
   }
   // Display Map Legend
-  else if (setupComplete && p_secondButton->wasReleasefor(500))
+  else if (setupComplete && p_secondButton->wasReleasefor(1000))
   {
     activationTime = lastSecondButtonPressLasted;
     buttonTop = false;
@@ -1619,6 +1623,13 @@ void testMapDisplay()
   double longitude = -0.54890166666666; 
   double heading = 0.0;
   mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,heading);
+}
+
+void clearButtons()
+{
+  p_primaryButton->read();
+  p_secondButton->read();
+  BootButton.read();
 }
 
 void updateButtons()
