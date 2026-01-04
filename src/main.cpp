@@ -248,7 +248,8 @@ double longitude = uninitialisedLongitude;
 double heading=0.0;
 uint32_t x_message_flags = 0;
 uint32_t X_MESSAGE_FIX_FLAG = 0x01;
-float  depth=0.0;
+float depth=0.0;
+float course=0.0;
 bool locationHasFix = false;
 int fixMessagesReceived = 0, noFixMessagesReceived = 0;
 
@@ -1092,7 +1093,7 @@ void acquireHumidityAndTemperatureReadings()
       temperature = temp.temperature;
     }
 
-    mapScreen->setHumidityTempDepth(relative_humidity,temperature,depth);
+    mapScreen->setHumidityTempDepth(relative_humidity,temperature,depth,course);
 }
 
 #ifdef COMPILE_TOF
@@ -1234,8 +1235,9 @@ void processReceivedESPNowMessages()
           const int longitudeOffset = 16;
           const int headingOffset = 24;
           const int depthOffset = 32;
-          const int x_message_flags_offset = 36;
-          const int currentTargetOffset = 40;
+          const int courseOffset = 36;
+          const int x_message_flags_offset = 40;
+          const int currentTargetOffset = 44;
                     
           char targetCode[7];
 
@@ -1249,6 +1251,7 @@ void processReceivedESPNowMessages()
           memcpy(&longitude, rxQueueESPNowItemBuffer + longitudeOffset, sizeof(double));
           memcpy(&heading,   rxQueueESPNowItemBuffer + headingOffset, sizeof(double));
           memcpy(&depth,   rxQueueESPNowItemBuffer + depthOffset, sizeof(float));
+          memcpy(&course,   rxQueueESPNowItemBuffer + courseOffset, sizeof(float));
           memcpy(&x_message_flags,   rxQueueESPNowItemBuffer + x_message_flags_offset, sizeof(uint32_t));
 
           locationHasFix = x_message_flags & X_MESSAGE_FIX_FLAG;
