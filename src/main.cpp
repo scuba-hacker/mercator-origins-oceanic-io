@@ -814,19 +814,9 @@ bool checkForDualButtonPresses()
       }
       else if (action1000msReached)
       {
-        // 0.5 second hold completed - OTA mode
-//        static uint32_t lastOTAToggle = 0;
-//        if (millis() - lastOTAToggle > 5000)  // Prevent rapid OTA toggles
-//        {
-//          lastOTAToggle = millis();
-//          toggleOTAActive();
-//        }
-
-        compositeSprite->fillSprite(TFT_BLUE);
-        resetCompositeSpriteCursor();
-        compositeSprite->print("1s Both Buttons");
-        mapScreen->copyCompositeSpriteToDisplay();
         delay(800);
+        updateButtons();
+        forceDeepSleep(); // does not continue from here
         triggered = true;
       }
     }
@@ -2320,7 +2310,7 @@ void forceDeepSleep()
   // put ESP32 into deep sleep - faster charging
   compositeSprite->fillSprite(TFT_RED);
   resetCompositeSpriteCursor();
-  compositeSprite->print("Sleep for Charging...");
+  compositeSprite->print("Triggered Deep Sleep...");
   mapScreen->copyCompositeSpriteToDisplay();
   delay(3000);
 
