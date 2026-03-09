@@ -1,5 +1,5 @@
-
+.pio/**
+.vscode/**
 .DS_Store
-.pio
-.vscode
 mercator_secrets.c
+patches/__pycache__
