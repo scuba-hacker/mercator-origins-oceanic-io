@@ -6,7 +6,7 @@ This document outlines a phased approach to implementing PNG-based mapping, star
 
 The implementation follows a three-phase approach:
 
-1. **Phase 1**: PNG files in internal flash (LittleFS) - maintains existing mapping code
+1. **Phase 1**: PNG files in internal flash (LittleFS) - maintains existing mapping code. Use FTP.
 2. **Phase 2**: Advanced tiled scrolling system with deadzone navigation  
 3. **Phase 3**: SD card integration and multi-resolution support
 
@@ -40,7 +40,7 @@ Savings: ~3MB flash space + faster OTA uploads
 
 #### File Structure
 ```
-/littlefs/maps/
+/maps/
   wraysbury_all.png     # Overview map (600×450)
   wraysbury_n.png       # North region
   wraysbury_w.png       # West region  
@@ -148,271 +148,9 @@ void decompressPNGToCache(File& pngFile, int mapIndex) {
 - **Zoom operations**: Identical to current system (instant)
 - **4 FPS capability**: Easily achieved
 
-## File Upload Methods for LittleFS
-
-### Method 1: Web-Based File Manager (Recommended)
-
-#### Implementation
-```cpp
-// Add to existing OTA web server
-void setupFileManagerEndpoints() {
-    // File upload endpoint
-    server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "Upload complete");
-    }, handleFileUpload);
-    
-    // File browser endpoint  
-    server.on("/files", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String html = generateFileListHTML();
-        request->send(200, "text/html", html);
-    });
-    
-    // Delete file endpoint
-    server.on("/delete", HTTP_DELETE, [](AsyncWebServerRequest *request) {
-        String filename = request->getParam("file")->value();
-        LittleFS.remove("/" + filename);
-        request->send(200, "text/plain", "Deleted: " + filename);
-    });
-}
-
-void handleFileUpload(AsyncWebServerRequest *request, String filename, 
-                     size_t index, uint8_t *data, size_t len, bool final) {
-    static File uploadFile;
-    
-    if (index == 0) {
-        // Start upload
-        uploadFile = LittleFS.open("/maps/" + filename, "w");
-    }
-    
-    if (len) {
-        uploadFile.write(data, len);
-    }
-    
-    if (final) {
-        uploadFile.close();
-        Serial.println("Upload complete: " + filename);
-    }
-}
-```
-
-#### File Manager HTML Interface
-```html
-<!DOCTYPE html>
-<html>
-<head><title>Mercator Origins - Map File Manager</title></head>
-<body>
-    <h1>Map File Manager</h1>
-    
-    <!-- File Upload Form -->
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="mapfile" accept=".png" multiple>
-        <input type="submit" value="Upload PNG Maps">
-    </form>
-    
-    <!-- File List -->
-    <h2>Current Map Files</h2>
-    <div id="fileList">
-        <!-- Populated by JavaScript -->
-    </div>
-    
-    <script>
-        // Fetch and display file list
-        fetch('/files').then(r => r.text()).then(html => {
-            document.getElementById('fileList').innerHTML = html;
-        });
-    </script>
-</body>
-</html>
-```
-
-#### Benefits
-- ✅ **Browser-based** - works on any device with WiFi
-- ✅ **Drag & drop** - easy file upload interface
-- ✅ **File management** - view, delete, replace files
-- ✅ **Integrated** - uses existing OTA web server
-- ✅ **No additional tools** - works with standard web browser
-
-### Method 2: FTP Server Integration
+### FTP Server Integration - this is complete
 
 Based on your existing FTP implementation at https://github.com/scuba-hacker/mercator-origins-silky-io:
-
-#### Integration
-```cpp
-#include <ESP32FtpServer.h>
-
-FtpServer ftpSrv;   // Global FTP server instance
-
-void setupFTPServer() {
-    if (LittleFS.begin()) {
-        // Start FTP server on LittleFS
-        ftpSrv.begin("oceanic", "mercator");  // username, password
-        
-        Serial.println("FTP Server started");
-        Serial.println("Connect to: " + WiFi.localIP().toString());
-        Serial.println("Username: oceanic, Password: mercator");
-    }
-}
-
-void loop() {
-    // Handle FTP requests
-    ftpSrv.handleFTP();
-    
-    // Your existing loop code...
-}
-```
-
-#### Usage
-```bash
-# Connect with any FTP client
-ftp 192.168.1.xxx
-Username: oceanic
-Password: mercator
-
-# Navigate to maps directory
-cd /maps
-
-# Upload PNG files
-put wraysbury_all.png
-put wraysbury_n.png
-# ... upload all map files
-
-# List files to verify
-ls -la
-```
-
-#### Benefits
-- ✅ **Familiar interface** - standard FTP clients (FileZilla, WinSCP, etc.)
-- ✅ **Batch uploads** - multiple files at once
-- ✅ **Reliable transfers** - FTP protocol handles interruptions
-- ✅ **File management** - rename, delete, organize files
-- ✅ **Proven solution** - based on your existing implementation
-
-### Method 3: Platform.IO Data Upload
-
-#### Configuration
-```ini
-# In platformio.ini
-[env:oceanic]
-platform = espressif32
-framework = arduino
-upload_protocol = esptool
-filesystem = littlefs
-
-# Data directory for filesystem files
-data_dir = data/
-
-# Custom upload command for filesystem
-extra_scripts = upload_fs.py
-```
-
-#### Directory Structure
-```
-project_root/
-├── src/
-│   └── main.cpp
-├── data/                    # Files to upload to LittleFS
-│   └── maps/
-│       ├── wraysbury_all.png
-│       ├── wraysbury_n.png
-│       ├── wraysbury_w.png
-│       ├── wraysbury_sw.png
-│       ├── wraysbury_s.png
-│       └── wraysbury_se.png
-└── platformio.ini
-```
-
-#### Upload Script (upload_fs.py)
-```python
-Import("env")
-
-def upload_filesystem(source, target, env):
-    print("Uploading filesystem image...")
-    env.Execute("$PYTHONEXE -m platformio run -t uploadfs")
-
-env.AddCustomTarget("uploadfs", upload_filesystem)
-```
-
-#### Commands
-```bash
-# Upload filesystem only (maps)
-pio run -t uploadfs
-
-# Upload code and filesystem
-pio run -t upload
-pio run -t uploadfs
-```
-
-#### Benefits
-- ✅ **Development integration** - part of build process
-- ✅ **Version control** - maps stored with code
-- ✅ **Repeatable** - consistent deployment
-- ✅ **Automated** - can be scripted
-
-#### Drawbacks
-- ❌ **Requires rebuild** - filesystem changes need recompilation
-- ❌ **Development focus** - not ideal for field updates
-- ❌ **USB connection** - requires physical access to device
-
-### Method 4: OTA Filesystem Update
-
-#### Implementation
-```cpp
-void setupOTAFilesystem() {
-    // Custom endpoint for filesystem updates
-    server.on("/update_fs", HTTP_POST, [](AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "Filesystem update complete");
-    }, handleFilesystemOTA);
-}
-
-void handleFilesystemOTA(AsyncWebServerRequest *request, String filename, 
-                        size_t index, uint8_t *data, size_t len, bool final) {
-    static bool updateStarted = false;
-    
-    if (index == 0) {
-        // Start filesystem update
-        if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS)) {
-            request->send(500, "text/plain", "Filesystem update failed");
-            return;
-        }
-        updateStarted = true;
-    }
-    
-    if (len) {
-        if (Update.write(data, len) != len) {
-            request->send(500, "text/plain", "Write failed");
-            return;
-        }
-    }
-    
-    if (final) {
-        if (Update.end()) {
-            Serial.println("Filesystem update successful");
-            ESP.restart();  // Restart to mount new filesystem
-        }
-    }
-}
-```
-
-#### Benefits
-- ✅ **Over-the-air** - no physical access needed
-- ✅ **Complete filesystem** - updates entire LittleFS partition
-- ✅ **Remote deployment** - field updates possible
-
-#### Drawbacks
-- ❌ **Complex** - requires filesystem image creation
-- ❌ **All-or-nothing** - replaces entire filesystem
-- ❌ **Risk of corruption** - failed update can brick filesystem
-
-## Recommended Approach
-
-### Primary Method: Web-Based File Manager
-**Use for**: Regular map updates, field deployment, user-friendly management
-
-### Secondary Method: FTP Server  
-**Use for**: Batch uploads, development, power users familiar with FTP
-
-### Development Method: Platform.IO Data Upload
-**Use for**: Initial deployment, version-controlled map sets
 
 ## Implementation Timeline - Phase 1
 
@@ -428,13 +166,7 @@ void handleFilesystemOTA(AsyncWebServerRequest *request, String filename,
 - [ ] Implement cache management (LRU eviction)
 - [ ] Performance testing and optimization
 
-### Week 3: File Upload Systems
-- [ ] Implement web-based file manager
-- [ ] Add FTP server support
-- [ ] Create Platform.IO data upload workflow
-- [ ] Documentation and testing
-
-### Week 4: Testing & Deployment
+### Week 3: Testing & Deployment
 - [ ] Convert existing Wraysbury maps to PNG
 - [ ] Test all 6 maps with zoom functionality
 - [ ] Validate memory usage and performance
@@ -496,7 +228,7 @@ private:
 
 #### File Structure
 ```
-/littlefs/tiles/
+/tiles/
   wraysbury_0_0.png    # Northwest tile (256×256, ~15KB)
   wraysbury_0_1.png    # North-center tile
   wraysbury_0_2.png    # Northeast tile  
