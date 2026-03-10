@@ -1205,16 +1205,16 @@ void loop()
   if (testPNG)
   {
     bool swapBytes = false;
-    mapScreen->drawPNG("/maps/home_middle.png", swapBytes);
-    mapScreen->drawPNG("/maps/home_all.png", swapBytes);
-    mapScreen->drawPNG("/maps/vobster_all.png", swapBytes);
-    mapScreen->drawPNG("/maps/vobster_centre.png", swapBytes);
-    mapScreen->drawPNG("/maps/lily_wraysbury_all.png", swapBytes);
-    mapScreen->drawPNG("/maps/lily_wraysbury_N.png", swapBytes);
-    mapScreen->drawPNG("/maps/lily_wraysbury_S.png", swapBytes);
-    mapScreen->drawPNG("/maps/lily_wraysbury_SE.png", swapBytes);
-    mapScreen->drawPNG("/maps/lily_wraysbury_SW.png", swapBytes);
-    mapScreen->drawPNG("/maps/lily_wraysbury_W.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/home_middle.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/home_all.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/vobster_all.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/vobster_centre.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/lily_wraysbury_all.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/lily_wraysbury_N.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/lily_wraysbury_S.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/lily_wraysbury_SE.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/lily_wraysbury_SW.png", swapBytes);
+    mapScreen->testDrawPNG("/maps/lily_wraysbury_W.png", swapBytes);
     return;
   }
 
