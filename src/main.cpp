@@ -2,7 +2,7 @@
 
 /////////////////// DIAG SERIAL SETTINGS /////////////////////
 bool writeLogToSerial=true;
-bool testPNG=true;
+bool testPNG=false;
 
 //#define USE_WEBSERIAL
 #ifdef USE_WEBSERIAL
@@ -128,7 +128,7 @@ bool doInitialSerialReceiveEchoTest=false;
 bool testPreCannedLatLong=false;
 bool diveTrackTest = false;
 bool diveTraceTest = false;
-uint32_t diveTraceTrackStepPause = 100;
+uint32_t diveTraceTrackStepPause = 1;
 const uint32_t diveTraceTrackStepIncrement = 50;
 
 const bool correctForReversedCompassTrackTest = true;
