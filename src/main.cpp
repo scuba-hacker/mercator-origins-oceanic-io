@@ -2,6 +2,7 @@
 
 /////////////////// DIAG SERIAL SETTINGS /////////////////////
 bool writeLogToSerial=true;
+bool testPNG=true;
 
 //#define USE_WEBSERIAL
 #ifdef USE_WEBSERIAL
@@ -132,7 +133,7 @@ const uint32_t diveTraceTrackStepIncrement = 50;
 
 const bool correctForReversedCompassTrackTest = true;
 
-const bool enableOTAServerAtStartup=false;
+const bool enableOTAServerAtStartup=true;
 const bool enableESPNow = !enableOTAServerAtStartup;
 
 uint8_t newLidarDataReady = 0;
@@ -1200,6 +1201,22 @@ void loop()
     acquireLidarDistanceReading();
   }
   #endif
+  
+  if (testPNG)
+  {
+    bool swapBytes = false;
+    mapScreen->drawPNG("/maps/home_middle.png", swapBytes);
+    mapScreen->drawPNG("/maps/home_all.png", swapBytes);
+    mapScreen->drawPNG("/maps/vobster_all.png", swapBytes);
+    mapScreen->drawPNG("/maps/vobster_centre.png", swapBytes);
+    mapScreen->drawPNG("/maps/lily_wraysbury_all.png", swapBytes);
+    mapScreen->drawPNG("/maps/lily_wraysbury_N.png", swapBytes);
+    mapScreen->drawPNG("/maps/lily_wraysbury_S.png", swapBytes);
+    mapScreen->drawPNG("/maps/lily_wraysbury_SE.png", swapBytes);
+    mapScreen->drawPNG("/maps/lily_wraysbury_SW.png", swapBytes);
+    mapScreen->drawPNG("/maps/lily_wraysbury_W.png", swapBytes);
+    return;
+  }
 
   readSensors();
 
