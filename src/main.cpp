@@ -5,9 +5,9 @@ bool writeLogToSerial=true;
 bool testPNG=false;
 
 //#define USE_WEBSERIAL
-#ifdef USE_WEBSERIAL
-#include <WebSerial.h>
-#endif
+
+#include "SerialConfig.h"   // Serial configuration and buffer logging system
+
 //////////////////////////////////////////////////////////////
 
 #include <esp_sleep.h>
@@ -274,12 +274,6 @@ int espScanForeColour = TFT_WHITE;
 int wifiScanBackColour = TFT_CYAN;
 int wifiScanForeColour = TFT_BLUE;
 
-#ifdef USE_WEBSERIAL
-  #define USB_SERIAL WebSerial
-#else
-  #define USB_SERIAL Serial
-#endif
-
 const int offBrightness = 0;
 const int dayBrightness = 255;
 const int nightBrightness = 100;
@@ -333,12 +327,9 @@ void forceDeepSleep();
 
 void dumpHeapUsage(const char* msg)
 {  
-  if (writeLogToSerial)
-  {
-    multi_heap_info_t info;
-    heap_caps_get_info(&info, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT); // internal RAM, memory capable to store data or to create new task
-    USB_SERIAL.printf("\n%s : free heap bytes: %i  largest free heap block: %i min free ever: %i\n",  msg, info.total_free_bytes, info.largest_free_block, info.minimum_free_bytes);
-  }
+  multi_heap_info_t info;
+  heap_caps_get_info(&info, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT); // internal RAM, memory capable to store data or to create new task
+  USB_SERIAL_PRINTF("\n%s : free heap bytes: %i  largest free heap block: %i min free ever: %i\n",  msg, info.total_free_bytes, info.largest_free_block, info.minimum_free_bytes);
 }
 
 void testMapDisplay();
@@ -585,11 +576,8 @@ void initToFSensor()
 
     if (error != VL53L4CX_ERROR_NONE)
     {
-      if (writeLogToSerial)
-      {
-        USB_SERIAL.print("Error Initializing Sensor: ");
-        USB_SERIAL.println(error);
-      }
+      USB_SERIAL_PRINT("Error Initializing Sensor: ");
+      USB_SERIAL_PRINTLN(error);
     }
     else
     {
@@ -597,8 +585,8 @@ void initToFSensor()
 
       if (error != VL53L4CX_ERROR_NONE)
       {
-        USB_SERIAL.print("Error Initializing Distance Mode: ");
-        USB_SERIAL.println(error);
+        USB_SERIAL_PRINT("Error Initializing Distance Mode: ");
+        USB_SERIAL_PRINTLN(error);
       }
       else
       {
@@ -625,22 +613,18 @@ bool  setupComplete = false;
 
 void setup()
 {
- if (writeLogToSerial)
-  {
-    #ifndef USE_WEBSERIAL
-      USB_SERIAL.begin(115200);
-      Serial.flush();
-      delay(50);
-    #endif
-  }
+  #ifndef USE_WEBSERIAL
+    USB_SERIAL.begin(115200);
+    Serial.flush();
+    delay(50);
+  #endif
   
   dumpHeapUsage("Setup(): at startup ");
   amoled.begin();
   setScreenBrightness(dayBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
 
-  if (writeLogToSerial)
-    USB_SERIAL.println("created MapScreen_T4");
+  USB_SERIAL_PRINTLN("created MapScreen_T4");
     
   mapScreen->registerBreadCrumbRecordActionCallback(&publishToMakoBreadCrumbRecord);
 
@@ -1005,8 +989,7 @@ bool checkGoProButtons()
   /*
   if (activationTime > 0)
   {
-    if (writeLogToSerial)
-      USB_SERIAL.println("Reed Activated...");
+    USB_SERIAL_PRINTLN("Reed Activated...");
 
     publishToMakoReedActivation(reedSwitchTop, activationTime);
   }*/
@@ -1034,11 +1017,8 @@ void publishToMakoBreadCrumbRecord(const bool record)
   if (isPairedWithMako && ESPNow_mako_peer.channel == ESPNOW_CHANNEL)
   {
     snprintf(mako_espnow_buffer,sizeof(mako_espnow_buffer),"B%c",(record ? 'Y' : 'N'));
-    if (writeLogToSerial)
-    {
-      USB_SERIAL.println("Sending ESP B msg to Mako...");
-      USB_SERIAL.println(mako_espnow_buffer);
-    }
+    USB_SERIAL_PRINTLN("Sending ESP B msg to Mako...");
+    USB_SERIAL_PRINTLN(mako_espnow_buffer);
 
     ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, reinterpret_cast<uint8_t*>(mako_espnow_buffer), strlen(mako_espnow_buffer)+1);
   }
@@ -1049,11 +1029,8 @@ void publishToMakoTestMessage(const char* testMessage)
   if (isPairedWithMako && ESPNow_mako_peer.channel == ESPNOW_CHANNEL)
   {
     snprintf(mako_espnow_buffer,sizeof(mako_espnow_buffer),"T%s",testMessage);
-    if (writeLogToSerial)
-    {
-      USB_SERIAL.println("Sending ESP T msg to Mako...");
-      USB_SERIAL.println(mako_espnow_buffer);
-    }
+    USB_SERIAL_PRINTLN("Sending ESP T msg to Mako...");
+    USB_SERIAL_PRINTLN(mako_espnow_buffer);
 
     ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, reinterpret_cast<uint8_t*>(mako_espnow_buffer), strlen(mako_espnow_buffer)+1);
   }
@@ -1064,17 +1041,13 @@ void publishToMakoReedActivation(const bool topReed, const uint32_t ms)
   if (isPairedWithMako && ESPNow_mako_peer.channel == ESPNOW_CHANNEL)
   {
     snprintf(mako_espnow_buffer,sizeof(mako_espnow_buffer),"R%c%lu       ",(topReed ? 'T' : 'B'),ms);
-    if (writeLogToSerial)
-    {
-      USB_SERIAL.println("Sending ESP R msg to Mako...");
-      USB_SERIAL.println(mako_espnow_buffer);
-    }
+    USB_SERIAL_PRINTLN("Sending ESP R msg to Mako...");
+    USB_SERIAL_PRINTLN(mako_espnow_buffer);
     ESPNowSendResult = esp_now_send(ESPNow_mako_peer.peer_addr, reinterpret_cast<uint8_t*>(mako_espnow_buffer), strlen(mako_espnow_buffer)+1);
   }
   else
   {
-    if (writeLogToSerial)
-      USB_SERIAL.println("ESPNow inactive - not sending ESP R msg to Mako...");
+    USB_SERIAL_PRINTLN("ESPNow inactive - not sending ESP R msg to Mako...");
   }
 }
 
@@ -1120,19 +1093,16 @@ void acquireLidarDistanceReading()
 
   VL53L4CX_Error status = sensor_vl53l4cx_sat.VL53L4CX_GetMeasurementDataReady(&newLidarDataReady);
 
-  if (writeLogToSerial)
-    USB_SERIAL.printf("GetMeasurementDataReady Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
+  USB_SERIAL_PRINTF("GetMeasurementDataReady Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
 
   if (!newLidarDataReady)
   {
-    if (writeLogToSerial)
-      USB_SERIAL.printf("Data Not Ready, returning\n");
+    USB_SERIAL_PRINTF("Data Not Ready, returning\n");
     return;
   }
   else
   {
-    if (writeLogToSerial)
-      USB_SERIAL.printf("Data Ready, extract objects\n");
+    USB_SERIAL_PRINTF("Data Ready, extract objects\n");
   }
 
   VL53L4CX_MultiRangingData_t MultiRangingData;
@@ -1142,13 +1112,11 @@ void acquireLidarDistanceReading()
   {
     status = sensor_vl53l4cx_sat.VL53L4CX_GetMultiRangingData(pMultiRangingData);
 
-    if (writeLogToSerial)
-      USB_SERIAL.printf("GetMultiRangingData Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
+    USB_SERIAL_PRINTF("GetMultiRangingData Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
 
     int no_of_object_found = pMultiRangingData->NumberOfObjectsFound;
 
-    if (writeLogToSerial)
-      USB_SERIAL.printf("VL53L4CX Satellite: Count=%d, #Objs=%1d \n", pMultiRangingData->StreamCount, no_of_object_found);
+    USB_SERIAL_PRINTF("VL53L4CX Satellite: Count=%d, #Objs=%1d \n", pMultiRangingData->StreamCount, no_of_object_found);
       
     maxDistance = -0.5;
     for (int j = 0; j < no_of_object_found; j++) 
@@ -1156,31 +1124,27 @@ void acquireLidarDistanceReading()
       if (pMultiRangingData->RangeData[j].RangeMilliMeter > maxDistance)
         maxDistance = ((float)pMultiRangingData->RangeData[j].RangeMilliMeter)/1000.0;
 
-      if (writeLogToSerial)
-      {
-        if (j != 0) 
-          USB_SERIAL.print("\r\n                               ");
+      if (j != 0) 
+        USB_SERIAL_PRINT("\r\n                               ");
 
-        USB_SERIAL.print("status=");
-        USB_SERIAL.print(pMultiRangingData->RangeData[j].RangeStatus);
-        USB_SERIAL.print(", D=");
-        USB_SERIAL.print(pMultiRangingData->RangeData[j].RangeMilliMeter);
-        USB_SERIAL.print("mm");
-        USB_SERIAL.print(", Signal=");
-        USB_SERIAL.print((float)pMultiRangingData->RangeData[j].SignalRateRtnMegaCps / 65536.0);
-        USB_SERIAL.print(" Mcps, Ambient=");
-        USB_SERIAL.print((float)pMultiRangingData->RangeData[j].AmbientRateRtnMegaCps / 65536.0);
-        USB_SERIAL.print(" Mcps, ");
-        USB_SERIAL.print(VL53L4CX_RangeStatusCode(pMultiRangingData->RangeData[j].RangeStatus));
-      }
+      USB_SERIAL_PRINT("status=");
+      USB_SERIAL_PRINT(pMultiRangingData->RangeData[j].RangeStatus);
+      USB_SERIAL_PRINT(", D=");
+      USB_SERIAL_PRINT(pMultiRangingData->RangeData[j].RangeMilliMeter);
+      USB_SERIAL_PRINT("mm");
+      USB_SERIAL_PRINT(", Signal=");
+      USB_SERIAL_PRINT((float)pMultiRangingData->RangeData[j].SignalRateRtnMegaCps / 65536.0);
+      USB_SERIAL_PRINT(" Mcps, Ambient=");
+      USB_SERIAL_PRINT((float)pMultiRangingData->RangeData[j].AmbientRateRtnMegaCps / 65536.0);
+      USB_SERIAL_PRINT(" Mcps, ");
+      USB_SERIAL_PRINT(VL53L4CX_RangeStatusCode(pMultiRangingData->RangeData[j].RangeStatus));
     }
   }
 
   if (status == 0)
   {
     status = sensor_vl53l4cx_sat.VL53L4CX_ClearInterruptAndStartMeasurement();
-    if (writeLogToSerial)
-      USB_SERIAL.printf("VL53L4CX_ClearInterruptAndStartMeasurement Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
+    USB_SERIAL_PRINTF("VL53L4CX_ClearInterruptAndStartMeasurement Status: %s\n",VL53L4CX_RangeStatusCode(status).c_str());
   }
 
   mapScreen->setLidarDistance(maxDistance);
@@ -1293,7 +1257,7 @@ void processReceivedESPNowMessages()
 
           if (!fixMessagesReceived)
           {
-            USB_SERIAL.println("Received Location X Message: First fix not received.\n");
+            USB_SERIAL_PRINTLN("Received Location X Message: First fix not received.\n");
             compositeSprite->setTextColor(TFT_YELLOW,espScanBackColour);
             compositeSprite->fillSprite(espScanBackColour);
             compositeSprite->setTextWrap(false,true);
@@ -1328,14 +1292,11 @@ void processReceivedESPNowMessages()
 
           mapScreen->setLocationLatLong(latitude, longitude);
 
-          if (writeLogToSerial)
-          {
-            USB_SERIAL.printf("targetCode: %s\n",targetCode);
-            USB_SERIAL.printf("latitude: %f\n",latitude);
-            USB_SERIAL.printf("longitude: %f\n",longitude);
-            USB_SERIAL.printf("heading: %f\n",heading);
-            USB_SERIAL.printf("currentTarget: %s\n",currentTarget);
-          }
+          USB_SERIAL_PRINTF("targetCode: %s\n",targetCode);
+          USB_SERIAL_PRINTF("latitude: %f\n",latitude);
+          USB_SERIAL_PRINTF("longitude: %f\n",longitude);
+          USB_SERIAL_PRINTF("heading: %f\n",heading);
+          USB_SERIAL_PRINTF("currentTarget: %s\n",currentTarget);
 
           mapScreen->setTargetWaypointByLabel(targetCode);
 
@@ -1707,11 +1668,9 @@ void configAndStartUpESPNow()
   configESPNowDeviceAP();
   
   // This is the mac address of this peer in AP Mode
-  if (writeLogToSerial)
-  {
-    USB_SERIAL.print("AP MAC: "); 
-    USB_SERIAL.println(WiFi.softAPmacAddress());
-  }
+  USB_SERIAL_PRINT("AP MAC: "); 
+  USB_SERIAL_PRINTLN(WiFi.softAPmacAddress());
+
   // Init ESPNow with a fallback logic
   InitESPNow();
   
@@ -1729,17 +1688,14 @@ void configESPNowDeviceAP()
   String Password = "123456789";
   bool result = WiFi.softAP(SSID.c_str(), Password.c_str(), ESPNOW_CHANNEL, 0);
 
-  if (writeLogToSerial)
+  if (!result)
   {
-    if (!result)
-    {
-      USB_SERIAL.println("AP Config failed.");
-    }
-    else
-    {
-      USB_SERIAL.printf("AP Config Success. Broadcasting with AP: %s\n",String(SSID).c_str());
-      USB_SERIAL.printf("WiFi Channel: %d\n",WiFi.channel());
-    }
+    USB_SERIAL_PRINTLN("AP Config failed.");
+  }
+  else
+  {
+    USB_SERIAL_PRINTF("AP Config Success. Broadcasting with AP: %s\n",String(SSID).c_str());
+    USB_SERIAL_PRINTF("WiFi Channel: %d\n",WiFi.channel());
   }
 }
 
@@ -1748,14 +1704,12 @@ void InitESPNow()
   WiFi.disconnect();
   if (esp_now_init() == ESP_OK)
   {
-    if (writeLogToSerial)
-      USB_SERIAL.println("ESPNow Init Success");
+    USB_SERIAL_PRINTLN("ESPNow Init Success");
     ESPNowActive = true;
   }
   else
   {
-    if (writeLogToSerial)
-      USB_SERIAL.println("ESPNow Init Failed");
+    USB_SERIAL_PRINTLN("ESPNow Init Failed");
     ESPNowActive = false;
   }
 }
@@ -1776,15 +1730,12 @@ void OnESPNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 // callback when data is recv from Master
 void OnESPNowDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
-  if (writeLogToSerial)
-  {
-    char macStr[18];
-    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    USB_SERIAL.printf("Last Packet Recv from: %s\n",macStr);
-    USB_SERIAL.printf("Last Packet Recv 1st Byte: '%c'\n",*data);
-    USB_SERIAL.printf("Last Packet Recv Length: %d\n",data_len);
-  }
+  char macStr[18];
+  snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  USB_SERIAL_PRINTF("Last Packet Recv from: %s\n",macStr);
+  USB_SERIAL_PRINTF("Last Packet Recv 1st Byte: '%c'\n",*data);
+  USB_SERIAL_PRINTF("Last Packet Recv Length: %d\n",data_len);
 
   xQueueSend(msgsESPNowReceivedQueue, data, (TickType_t)0);  // don't block on enqueue, just drop if queue is full
 }
@@ -1835,14 +1786,12 @@ const char* scanForKnownNetwork() // return first known network found
   {
       compositeSprite->printf("Found: %s\n",network);
 
-    if (writeLogToSerial)
-      USB_SERIAL.printf("Found:\n%s\n",network);
+    USB_SERIAL_PRINTF("Found:\n%s\n",network);
   }
   else
   {
     compositeSprite->println("None\nFound");
-    if (writeLogToSerial)
-      USB_SERIAL.println("No networks Found\n");
+    USB_SERIAL_PRINTLN("No networks Found\n");
   }
   mapScreen->copyCompositeSpriteToDisplay();
 
@@ -1895,14 +1844,14 @@ void setupFTPServer()
   {
     ftpServer.setCallback(_ftpConnectCallback);
     ftpServer.setTransferCallback(_ftpTransferCallback);
-    USB_SERIAL.println("LittleFS opened!");
+    USB_SERIAL_PRINTLN("LittleFS opened!");
     ftpServer.begin("mercator","oceanic");    //username, password for ftp.   (default 21, 50009 for PASV)
-    USB_SERIAL.println("FTP Server Online");
+    USB_SERIAL_PRINTLN("FTP Server Online");
     ftpActive = true;
   }
   else
   {
-    USB_SERIAL.println("LittleFS failed to open, FTP Server Offline");
+    USB_SERIAL_PRINTLN("LittleFS failed to open, FTP Server Offline");
     ftpActive = false;
   }
 }
@@ -1911,14 +1860,11 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
 {
   if (wifiOnly && WiFi.status() == WL_CONNECTED)
   {
-    if (writeLogToSerial)
-      USB_SERIAL.printf("setupOTAWebServer: attempt to connect wifiOnly, already connected - otaActive=%i\n",otaActive);
-
+    USB_SERIAL_PRINTF("setupOTAWebServer: attempt to connect wifiOnly, already connected - otaActive=%i\n",otaActive);
     return true;
   }
 
-  if (writeLogToSerial)
-    USB_SERIAL.printf("setupOTAWebServer: attempt to connect %s wifiOnly=%i when otaActive=%i\n",_ssid, wifiOnly,otaActive);
+  USB_SERIAL_PRINTF("setupOTAWebServer: attempt to connect %s wifiOnly=%i when otaActive=%i\n",_ssid, wifiOnly,otaActive);
 
   bool forcedCancellation = false;
 
@@ -1962,18 +1908,15 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
     {
       dumpHeapUsage("setupOTAWebServer(): after WiFi connect");
 
-      if (writeLogToSerial)
-        USB_SERIAL.println("setupOTAWebServer: WiFi connected ok, starting up OTA");
+      USB_SERIAL_PRINTLN("setupOTAWebServer: WiFi connected ok, starting up OTA");
 
-      if (writeLogToSerial)
-        USB_SERIAL.println("setupOTAWebServer: calling asyncWebServer.on");
+      USB_SERIAL_PRINTLN("setupOTAWebServer: calling asyncWebServer.on");
 
       asyncWebServer.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
         request->send(200, "text/plain", "To upload firmware use /update");
       });
         
-      if (writeLogToSerial)
-        USB_SERIAL.println("setupOTAWebServer: calling MercatorElegantOta.begin");
+      USB_SERIAL_PRINTLN("setupOTAWebServer: calling MercatorElegantOta.begin");
 
       MercatorElegantOta.setID(MERCATOR_OTA_DEVICE_LABEL);
       MercatorElegantOta.begin(&httpQueue, &asyncWebServer);    // Start MercatorElegantOta
@@ -1990,15 +1933,13 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
       }
       #endif
 
-      if (writeLogToSerial)
-        USB_SERIAL.println("setupOTAWebServer: calling asyncWebServer.begin");
+      USB_SERIAL_PRINTLN("setupOTAWebServer: calling asyncWebServer.begin");
 
       asyncWebServer.begin();
 
       dumpHeapUsage("setupOTAWebServer(): after asyncWebServer.begin");
 
-      if (writeLogToSerial)
-        USB_SERIAL.println("setupOTAWebServer: OTA setup complete");
+      USB_SERIAL_PRINTLN("setupOTAWebServer: OTA setup complete");
 
       compositeSprite->printf("%s\n",WiFi.localIP().toString());
       compositeSprite->println(WiFi.macAddress());
@@ -2031,8 +1972,7 @@ bool setupOTAWebServer(const char* _ssid, const char* _password, const char* lab
       compositeSprite->print("\nCancelled\nConnect\nAttempts");
     else
     {
-      if (writeLogToSerial)
-        USB_SERIAL.printf("setupOTAWebServer: WiFi failed to connect %s\n",_ssid);
+      USB_SERIAL_PRINTF("setupOTAWebServer: WiFi failed to connect %s\n",_ssid);
 
       compositeSprite->fillSprite(TFT_RED);
       resetCompositeSpriteCursor();
@@ -2119,22 +2059,17 @@ bool ESPNowScanForPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, co
   // reset on each scan 
   memset(&peer, 0, sizeof(peer));
 
-  if (writeLogToSerial)
-    USB_SERIAL.println("");
+  USB_SERIAL_PRINTLN("");
 
   if (scanResults == 0) 
-  {   
-    if (writeLogToSerial)
-      USB_SERIAL.println("No WiFi devices in AP Mode found");
+  { 
+    USB_SERIAL_PRINTLN("No WiFi devices in AP Mode found");
 
     peer.channel = ESPNOW_NO_PEER_CHANNEL_FLAG;
   } 
   else 
   {
-    if (writeLogToSerial)
-    {
-      USB_SERIAL.print("Found "); USB_SERIAL.print(scanResults); USB_SERIAL.println(" devices ");
-    }
+    USB_SERIAL_PRINT("Found "); USB_SERIAL_PRINT(scanResults); USB_SERIAL_PRINTLN(" devices ");
     
     for (int i = 0; i < scanResults; ++i) 
     {
@@ -2143,15 +2078,15 @@ bool ESPNowScanForPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, co
       int32_t RSSI = WiFi.RSSI(i);
       String BSSIDstr = WiFi.BSSIDstr(i);
 
-      if (writeLogToSerial && ESPNOW_PRINTSCANRESULTS) 
+      if (ESPNOW_PRINTSCANRESULTS) 
       {
-        USB_SERIAL.print(i + 1);
-        USB_SERIAL.print(": ");
-        USB_SERIAL.print(SSID);
-        USB_SERIAL.print(" (");
-        USB_SERIAL.print(RSSI);
-        USB_SERIAL.print(")");
-        USB_SERIAL.println("");
+        USB_SERIAL_PRINT(i + 1);
+        USB_SERIAL_PRINT(": ");
+        USB_SERIAL_PRINT(SSID);
+        USB_SERIAL_PRINT(" (");
+        USB_SERIAL_PRINT(RSSI);
+        USB_SERIAL_PRINT(")");
+        USB_SERIAL_PRINTLN("");
       }
       
       delay(10);
@@ -2159,12 +2094,9 @@ bool ESPNowScanForPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, co
       // Check if the current device starts with the peerSSIDPrefix
       if (SSID.indexOf(peerSSIDPrefix) == 0) 
       {
-        if (writeLogToSerial)
-        {
-          // SSID of interest
-          USB_SERIAL.println("Found a peer.");
-          USB_SERIAL.print(i + 1); USB_SERIAL.print(": "); USB_SERIAL.print(SSID); USB_SERIAL.print(" ["); USB_SERIAL.print(BSSIDstr); USB_SERIAL.print("]"); USB_SERIAL.print(" ("); USB_SERIAL.print(RSSI); USB_SERIAL.print(")"); USB_SERIAL.println("");
-        }
+        // SSID of interest
+        USB_SERIAL_PRINTLN("Found a peer.");
+        USB_SERIAL_PRINT(i + 1); USB_SERIAL_PRINT(": "); USB_SERIAL_PRINT(SSID); USB_SERIAL_PRINT(" ["); USB_SERIAL_PRINT(BSSIDstr); USB_SERIAL_PRINT("]"); USB_SERIAL_PRINT(" ("); USB_SERIAL_PRINT(RSSI); USB_SERIAL_PRINT(")"); USB_SERIAL_PRINTLN("");
                 
         // Get BSSID => Mac Address of the Slave
         const int macLength = 6;
@@ -2194,14 +2126,12 @@ bool ESPNowScanForPeer(esp_now_peer_info_t& peer, const char* peerSSIDPrefix, co
     if (peerFound)
     {
       compositeSprite->println("Peer Found");
-      if (writeLogToSerial)
-        USB_SERIAL.println("Peer Found, processing..");
+      USB_SERIAL_PRINTLN("Peer Found, processing..");
     } 
     else 
     {
       compositeSprite->println("Peer Not Found");
-      if (writeLogToSerial)
-        USB_SERIAL.println("Peer Not Found, trying again.");
+      USB_SERIAL_PRINTLN("Peer Not Found, trying again.");
     }
   }
   mapScreen->copyCompositeSpriteToDisplay();
@@ -2256,8 +2186,7 @@ bool ESPNowManagePeer(esp_now_peer_info_t& peer)
       ESPNowDeletePeer(peer);
     }
 
-    if (writeLogToSerial)
-      USB_SERIAL.print("Peer Status: ");
+    USB_SERIAL_PRINT("Peer Status: ");
 
     // check if the peer exists
     bool exists = esp_now_is_peer_exist(peer.peer_addr);
@@ -2265,8 +2194,7 @@ bool ESPNowManagePeer(esp_now_peer_info_t& peer)
     if (exists)
     {
       // Peer already paired.
-      if (writeLogToSerial)
-        USB_SERIAL.println("Already Paired");
+      USB_SERIAL_PRINTLN("Already Paired");
 
       compositeSprite->println("Already paired");
       result = true;
@@ -2279,46 +2207,39 @@ bool ESPNowManagePeer(esp_now_peer_info_t& peer)
       if (addStatus == ESP_OK)
       {
         // Pair success
-        if (writeLogToSerial)
-          USB_SERIAL.println("Pair success");
+        USB_SERIAL_PRINTLN("Pair success");
         compositeSprite->println("Pair success");
         result = true;
       }
       else if (addStatus == ESP_ERR_ESPNOW_NOT_INIT)
       {
         // How did we get so far!!
-        if (writeLogToSerial)
-          USB_SERIAL.println("ESPNOW Not Init");
+        USB_SERIAL_PRINTLN("ESPNOW Not Init");
         result = false;
       }
       else if (addStatus == ESP_ERR_ESPNOW_ARG)
       {
-        if (writeLogToSerial)
-            USB_SERIAL.println("Invalid Argument");
+        USB_SERIAL_PRINTLN("Invalid Argument");
         result = false;
       }
       else if (addStatus == ESP_ERR_ESPNOW_FULL)
       {
-        if (writeLogToSerial)
-            USB_SERIAL.println("Peer list full");
+        USB_SERIAL_PRINTLN("Peer list full");
         result = false;
       }
       else if (addStatus == ESP_ERR_ESPNOW_NO_MEM)
       {
-        if (writeLogToSerial)
-          USB_SERIAL.println("Out of memory");
+        USB_SERIAL_PRINTLN("Out of memory");
         result = false;
       }
       else if (addStatus == ESP_ERR_ESPNOW_EXIST)
       {
-        if (writeLogToSerial)
-          USB_SERIAL.println("Peer Exists");
+        USB_SERIAL_PRINTLN("Peer Exists");
         result = true;
       }
       else
       {
-        if (writeLogToSerial)
-          USB_SERIAL.println("Not sure what happened");
+        USB_SERIAL_PRINTLN("Not sure what happened");
         result = false;
       }
     }
@@ -2326,8 +2247,7 @@ bool ESPNowManagePeer(esp_now_peer_info_t& peer)
   else
   {
     // No peer found to process
-    if (writeLogToSerial)
-      USB_SERIAL.println("No Peer found to process");
+    USB_SERIAL_PRINTLN("No Peer found to process");
 
     compositeSprite->println("No Peer found to process");
     result = false;
@@ -2343,31 +2263,28 @@ void ESPNowDeletePeer(esp_now_peer_info_t& peer)
   {
     esp_err_t delStatus = esp_now_del_peer(peer.peer_addr);
 
-    if (writeLogToSerial)
+    USB_SERIAL_PRINT("Peer Delete Status: ");
+    if (delStatus == ESP_OK)
     {
-      USB_SERIAL.print("Peer Delete Status: ");
-      if (delStatus == ESP_OK)
-      {
-        // Delete success
-        USB_SERIAL.println("ESPNowDeletePeer::Success");
-      }
-      else if (delStatus == ESP_ERR_ESPNOW_NOT_INIT)
-      {
-        // How did we get so far!!
-        USB_SERIAL.println("ESPNowDeletePeer::ESPNOW Not Init");
-      }
-      else if (delStatus == ESP_ERR_ESPNOW_ARG)
-      {
-        USB_SERIAL.println("ESPNowDeletePeer::Invalid Argument");
-      }
-      else if (delStatus == ESP_ERR_ESPNOW_NOT_FOUND)
-      {
-        USB_SERIAL.println("ESPNowDeletePeer::Peer not found.");
-      }
-      else
-      {
-        USB_SERIAL.println("Not sure what happened");
-      }
+      // Delete success
+      USB_SERIAL_PRINTLN("ESPNowDeletePeer::Success");
+    }
+    else if (delStatus == ESP_ERR_ESPNOW_NOT_INIT)
+    {
+      // How did we get so far!!
+      USB_SERIAL_PRINTLN("ESPNowDeletePeer::ESPNOW Not Init");
+    }
+    else if (delStatus == ESP_ERR_ESPNOW_ARG)
+    {
+      USB_SERIAL_PRINTLN("ESPNowDeletePeer::Invalid Argument");
+    }
+    else if (delStatus == ESP_ERR_ESPNOW_NOT_FOUND)
+    {
+      USB_SERIAL_PRINTLN("ESPNowDeletePeer::Peer not found.");
+    }
+    else
+    {
+      USB_SERIAL_PRINTLN("Not sure what happened");
     }
   }
 }
@@ -2399,13 +2316,13 @@ void forceDeepSleep()
 void _ftpConnectCallback(FtpOperation ftpOperation, uint32_t freeSpace, uint32_t totalSpace){
   switch (ftpOperation) {
     case FTP_CONNECT:
-      USB_SERIAL.println(F("FTP: Connected!"));
+      USB_SERIAL_PRINTLN(F("FTP: Connected!"));
       break;
     case FTP_DISCONNECT:
-      USB_SERIAL.println(F("FTP: Disconnected!"));
+      USB_SERIAL_PRINTLN(F("FTP: Disconnected!"));
       break;
     case FTP_FREE_SPACE_CHANGE:
-      USB_SERIAL.printf("FTP: Free space change, free %lu of %lu!\n", (unsigned long)freeSpace, (unsigned long)totalSpace);
+      USB_SERIAL_PRINTF("FTP: Free space change, free %lu of %lu!\n", (unsigned long)freeSpace, (unsigned long)totalSpace);
       break;
     default:
       break;
@@ -2415,16 +2332,16 @@ void _ftpConnectCallback(FtpOperation ftpOperation, uint32_t freeSpace, uint32_t
 void _ftpTransferCallback(FtpTransferOperation ftpOperation, const char* name, uint32_t transferredSize){
   switch (ftpOperation) {
     case FTP_UPLOAD_START:
-      USB_SERIAL.println(F("FTP: Upload start!"));
+      USB_SERIAL_PRINTLN(F("FTP: Upload start!"));
       break;
     case FTP_UPLOAD:
-      USB_SERIAL.printf("FTP: Upload of file %s byte %lu\n", name, (unsigned long)transferredSize);
+      USB_SERIAL_PRINTF("FTP: Upload of file %s byte %lu\n", name, (unsigned long)transferredSize);
       break;
     case FTP_TRANSFER_STOP:
-      USB_SERIAL.println(F("FTP: Finish transfer!"));
+      USB_SERIAL_PRINTLN(F("FTP: Finish transfer!"));
       break;
     case FTP_TRANSFER_ERROR:
-      USB_SERIAL.println(F("FTP: Transfer error!"));
+      USB_SERIAL_PRINTLN(F("FTP: Transfer error!"));
       break;
     default:
       break;
