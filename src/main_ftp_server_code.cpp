@@ -67,7 +67,15 @@ void setupFTPServer()
   board_build.filesystem = littlefs
 
   */
-  if (LittleFS.begin(true)) 
+  bool littleFsReady = (LittleFS.totalBytes() > 0);
+  if (!littleFsReady) {
+    USB_SERIAL_PRINTLN("setupFTPServer: LittleFS not mounted, attempting begin()");
+    littleFsReady = LittleFS.begin(false);
+  } else {
+    USB_SERIAL.printf("setupFTPServer: LittleFS already mounted (%u bytes total)\n", LittleFS.totalBytes());
+  }
+
+  if (littleFsReady)
   {
     ftpServer.setCallback(_ftpConnectCallback);
     ftpServer.setTransferCallback(_ftpTransferCallback);

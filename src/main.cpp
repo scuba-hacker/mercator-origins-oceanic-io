@@ -392,7 +392,17 @@ void setup()
     delay(50);
   #endif
   
+
+  delay(10000);
+
   dumpHeapUsage("Setup(): at startup ");
+
+  if (LittleFS.begin(true)) {
+    USB_SERIAL.println("Setup(): LittleFS mounted OK");
+  } else {
+    USB_SERIAL.println("Setup(): LittleFS mount FAILED - PNG maps will not display");
+  }
+
   amoled.begin();
   setScreenBrightness(dayBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
