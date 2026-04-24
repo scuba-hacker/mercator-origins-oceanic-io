@@ -143,7 +143,7 @@ bool checkGoProButtons()
     return true;
   
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
-  if (p_primaryButton->wasReleasefor(100))
+  if (p_primaryButton->wasReleasefor(30))
   {
     if (!setupComplete) // null before recovery ota screen done at startup
     {
@@ -160,7 +160,10 @@ bool checkGoProButtons()
       buttonTop = true;
 
       mapScreen->cycleZoom(); changeMade = true;
+      USB_SERIAL_PRINTLN("########################   CYCLE ZOOM %i #####################################",mapScreen->getZoom());
+      uint32_t start = micros();
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
+      USB_SERIAL_PRINTLN("########################   Draw Diver %i ms ##################################", (micros() - start) / 1000);
     }
   }
 
@@ -199,7 +202,7 @@ bool checkGoProButtons()
     mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
   }
   // Toggle Breadcrumb Trail
-  else if (p_secondButton->wasReleasefor(100))
+  else if (p_secondButton->wasReleasefor(30))
   {
     if (!setupComplete) // null before recovery ota screen done at startup
     {

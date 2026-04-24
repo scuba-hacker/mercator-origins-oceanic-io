@@ -392,9 +392,6 @@ void setup()
     delay(50);
   #endif
   
-
-  delay(10000);
-
   dumpHeapUsage("Setup(): at startup ");
 
   if (LittleFS.begin(true)) {
