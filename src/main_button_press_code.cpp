@@ -160,10 +160,10 @@ bool checkGoProButtons()
       buttonTop = true;
 
       mapScreen->cycleZoom(); changeMade = true;
-      USB_SERIAL_PRINTLN("########################   CYCLE ZOOM %i #####################################",mapScreen->getZoom());
+      USB_SERIAL_PRINTF("########################   CYCLE ZOOM %i #####################################",mapScreen->getZoom());
       uint32_t start = micros();
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude, longitude, heading);
-      USB_SERIAL_PRINTLN("########################   Draw Diver %i ms ##################################", (micros() - start) / 1000);
+      USB_SERIAL_PRINTF("########################   Draw Diver %i ms ##################################", (micros() - start) / 1000);
     }
   }
 

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 /////////////////// DIAG SERIAL SETTINGS /////////////////////
-bool writeLogToSerial=true;
+bool writeLogToSerial=false;
 bool testPNG=false;
 
 //#define USE_WEBSERIAL
