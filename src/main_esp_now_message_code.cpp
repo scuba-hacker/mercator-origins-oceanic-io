@@ -86,11 +86,13 @@ void processReceivedESPNowMessages()
       //    longitude = 1.271165315;
 
           mapScreen->setLocationLatLong(latitude, longitude);
+          mapScreen->setDepth(depth);
+          mapScreen->setCourse(course);
+          mapScreen->setHeading(heading);
 
           USB_SERIAL_PRINTF("targetCode: %s\n",targetCode);
-          USB_SERIAL_PRINTF("latitude: %f\n",latitude);
-          USB_SERIAL_PRINTF("longitude: %f\n",longitude);
-          USB_SERIAL_PRINTF("heading: %f\n",heading);
+          USB_SERIAL_PRINTF("latitude: %f longitude: %f\n",latitude, longitude);
+          USB_SERIAL_PRINTF("heading: %f course: %f depth: %f\n",heading, course, depth);
           USB_SERIAL_PRINTF("currentTarget: %s\n",currentTarget);
 
           mapScreen->setTargetWaypointByLabel(targetCode);

@@ -186,7 +186,7 @@ void acquireHumidityAndTemperatureReadings()
       temperature = temp.temperature;
     }
 
-    mapScreen->setHumidityTempDepth(relative_humidity,temperature,depth,course);
+    mapScreen->setHumidityTemp(relative_humidity,temperature);
 }
 
 /* I2CDeviceAvailable --------------------------------------------------------*/
