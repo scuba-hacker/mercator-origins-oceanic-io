@@ -143,7 +143,23 @@ bool checkGoProButtons()
     return true;
   
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
-  if (p_primaryButton->wasReleasefor(30))
+  if (p_primaryButton->pressedFor(3000))   // Pressed for can only be used for the longest lasting button press event.
+  {
+    buttonTop = true;
+    changeMade = true;
+
+    USB_SERIAL_PRINTLN("Switching to other OTA Partition...");
+   
+    if (!switchToOtherOtaPartition())
+    {
+      USB_SERIAL_PRINTLN("Switch to other OTA Partition failed");
+    }
+    else
+    {
+      USB_SERIAL_PRINTLN("Switch to other OTA Partition returned true - but should not have reached here");
+    }
+  }
+  else if (p_primaryButton->wasReleasefor(30))
   {
     if (!setupComplete) // null before recovery ota screen done at startup
     {

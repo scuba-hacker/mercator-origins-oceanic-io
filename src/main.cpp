@@ -8,7 +8,18 @@ bool testPNG=false;
 
 #include "SerialConfig.h"   // Serial configuration and buffer logging system
 
-//////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+
+// **** CONCURRENT APP LOAD WITH t4-i2s ****
+
+// Upload Oceanic via USB to app0, and then use OTA to upload t4-i2s to app1.
+// If t4-i2s is uploaded via USB, then there is no OTA capability in that app to upload Oceanic.
+// USB upload always uploads to app0 and overwrites the otadata partition with boot_app0.bin so all 
+// trace of the other OTA app are gone.
+// To install the apps side-by-side, Oceanic must be uploaded by USB, and then t4-i2s by OTA.
+
+/////////////////////////////////////////////////////////////
+
 
 #include <esp_sleep.h>
 #include "driver/rtc_io.h"
@@ -112,6 +123,9 @@ VL53L4CX sensor_vl53l4cx_sat;
 #include <memory>
 #include <time.h>
 #include <queue>
+
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
 
 #include <fonts/NotoSansBold36.h>
 //#include <fonts/Final_Frontier_28.h>
@@ -388,7 +402,6 @@ void setup()
 {
   #ifndef USE_WEBSERIAL
     USB_SERIAL.begin(115200);
-    Serial.flush();
     delay(50);
   #endif
   
@@ -707,6 +720,39 @@ void forceDeepSleep()
 
   esp_deep_sleep_start();
   // never goes beyond here
+}
+
+bool switchToApp(esp_partition_subtype_t subtype) {
+  const esp_partition_t *target = esp_partition_find_first(
+      ESP_PARTITION_TYPE_APP, subtype, NULL);
+  if (target == NULL) {
+    USB_SERIAL_PRINTLN("OTA switch: target partition not found");
+    return false;
+  }
+  esp_app_desc_t desc;
+  if (esp_ota_get_partition_description(target, &desc) != ESP_OK) {
+    USB_SERIAL_PRINTLN("OTA switch: target partition empty or invalid");
+    return false;
+  }
+  
+  USB_SERIAL_PRINTF("OTA switch: rebooting into %s\n", desc.project_name);
+  
+  if (esp_ota_set_boot_partition(target) != ESP_OK) {
+    USB_SERIAL_PRINTLN("OTA switch: esp_ota_set_boot_partition failed");
+    return false;
+  }
+  esp_restart();
+  return true; // never get here!
+}
+
+bool switchToOtherOtaPartition() {
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    const esp_partition_subtype_t target =
+        (running->subtype == ESP_PARTITION_SUBTYPE_APP_OTA_0)
+            ? ESP_PARTITION_SUBTYPE_APP_OTA_1
+            : ESP_PARTITION_SUBTYPE_APP_OTA_0;
+    // only returns if there is a failure.
+    return switchToApp(target);
 }
 
 void testReceiveFromReefToOceanic()
