@@ -1,5 +1,11 @@
 #ifdef BUILD_INCLUDE_MAIN_BUTTON_PRESS_CODE
 
+void testButtons()
+{
+  for (;;)
+    USB_SERIAL_PRINTF("Top: %i, Side: %i\n", digitalRead(BUTTON_TOP_GPIO), digitalRead(BUTTON_SIDE_GPIO));
+}
+
 bool checkForDualButtonPresses()
 {
   static bool action1000msReached = false;
@@ -143,7 +149,7 @@ bool checkGoProButtons()
     return true;
   
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
-  if (p_primaryButton->pressedFor(3000))   // Pressed for can only be used for the longest lasting button press event.
+  if (enableOtaPartitionSwitch && p_primaryButton->pressedFor(3000))   // Pressed for can only be used for the longest lasting button press event.
   {
     buttonTop = true;
     changeMade = true;

@@ -18,6 +18,8 @@ bool testPNG=false;
 // trace of the other OTA app are gone.
 // To install the apps side-by-side, Oceanic must be uploaded by USB, and then t4-i2s by OTA.
 
+bool enableOtaPartitionSwitch = true;  // Long-press top button switches to the other OTA app partition
+
 /////////////////////////////////////////////////////////////
 
 
