@@ -29,8 +29,10 @@ void processReceivedESPNowMessages()
           const int headingOffset = 24;
           const int depthOffset = 32;
           const int courseOffset = 36;
-          const int x_message_flags_offset = 40;
-          const int currentTargetOffset = 44;
+          const int targetHeadingOffset = 40;
+          const int targetDistanceOffset = 44;
+          const int x_message_flags_offset = 48;
+          const int currentTargetOffset = 52;
                     
           char targetCode[7];
 
@@ -45,6 +47,8 @@ void processReceivedESPNowMessages()
           memcpy(&heading,   rxQueueESPNowItemBuffer + headingOffset, sizeof(double));
           memcpy(&depth,   rxQueueESPNowItemBuffer + depthOffset, sizeof(float));
           memcpy(&course,   rxQueueESPNowItemBuffer + courseOffset, sizeof(float));
+          memcpy(&targetHeading,   rxQueueESPNowItemBuffer + targetHeadingOffset, sizeof(float));
+          memcpy(&targetDistance,   rxQueueESPNowItemBuffer + targetDistanceOffset, sizeof(float));
           memcpy(&x_message_flags,   rxQueueESPNowItemBuffer + x_message_flags_offset, sizeof(uint32_t));
 
           locationHasFix = x_message_flags & X_MESSAGE_FIX_FLAG;
@@ -89,11 +93,13 @@ void processReceivedESPNowMessages()
           mapScreen->setDepth(depth);
           mapScreen->setCourse(course);
           mapScreen->setHeading(heading);
+          mapScreen->setTargetDirection(targetHeading,targetDistance);
 
           USB_SERIAL_PRINTF("targetCode: %s\n",targetCode);
           USB_SERIAL_PRINTF("latitude: %f longitude: %f\n",latitude, longitude);
           USB_SERIAL_PRINTF("heading: %f course: %f depth: %f\n",heading, course, depth);
           USB_SERIAL_PRINTF("currentTarget: %s\n",currentTarget);
+          USB_SERIAL_PRINTF("targetHeading: %f targetDistance: %f\n",targetHeading, targetDistance);
 
           mapScreen->setTargetWaypointByLabel(targetCode);
 

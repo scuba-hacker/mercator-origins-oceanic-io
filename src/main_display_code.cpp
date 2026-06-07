@@ -25,7 +25,7 @@ void startupScreen()
 
 void writePowerStatsToCompositeSprite()
 {
-  PowersSY6970& power = static_cast<PowersSY6970&>(amoled);
+  PowersSY6970& power = static_cast<PowersSY6970&>(amoled.SY);
 
   uint16_t vBattVoltage = power.getBattVoltage();
   uint16_t vSystemVoltage = power.getSystemVoltage();

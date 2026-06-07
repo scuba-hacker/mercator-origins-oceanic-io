@@ -278,6 +278,9 @@ uint32_t x_message_flags = 0;
 uint32_t X_MESSAGE_FIX_FLAG = 0x01;
 float depth=0.0;
 float course=0.0;
+float targetHeading=0.0;
+float targetDistance=0.0;
+
 bool locationHasFix = false;
 int fixMessagesReceived = 0, noFixMessagesReceived = 0;
 
