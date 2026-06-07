@@ -47,8 +47,8 @@ void processReceivedESPNowMessages()
           memcpy(&heading,   rxQueueESPNowItemBuffer + headingOffset, sizeof(double));
           memcpy(&depth,   rxQueueESPNowItemBuffer + depthOffset, sizeof(float));
           memcpy(&course,   rxQueueESPNowItemBuffer + courseOffset, sizeof(float));
-          memcpy(&targetHeading,   rxQueueESPNowItemBuffer + targetHeadingOffset, sizeof(float));
-          memcpy(&targetDistance,   rxQueueESPNowItemBuffer + targetDistanceOffset, sizeof(float));
+          memcpy(&targetHeadingFromMako,   rxQueueESPNowItemBuffer + targetHeadingOffset, sizeof(float));
+          memcpy(&targetDistanceFromMako,   rxQueueESPNowItemBuffer + targetDistanceOffset, sizeof(float));
           memcpy(&x_message_flags,   rxQueueESPNowItemBuffer + x_message_flags_offset, sizeof(uint32_t));
 
           locationHasFix = x_message_flags & X_MESSAGE_FIX_FLAG;
@@ -93,13 +93,13 @@ void processReceivedESPNowMessages()
           mapScreen->setDepth(depth);
           mapScreen->setCourse(course);
           mapScreen->setHeading(heading);
-          mapScreen->setTargetDirection(targetHeading,targetDistance);
+          mapScreen->setTargetDirectionFromMako(targetHeadingFromMako,targetDistanceFromMako);
 
           USB_SERIAL_PRINTF("targetCode: %s\n",targetCode);
           USB_SERIAL_PRINTF("latitude: %f longitude: %f\n",latitude, longitude);
           USB_SERIAL_PRINTF("heading: %f course: %f depth: %f\n",heading, course, depth);
           USB_SERIAL_PRINTF("currentTarget: %s\n",currentTarget);
-          USB_SERIAL_PRINTF("targetHeading: %f targetDistance: %f\n",targetHeading, targetDistance);
+          USB_SERIAL_PRINTF("targetHeadingFromMako: %f targetDistanceFromMako: %f\n",targetHeadingFromMako, targetDistanceFromMako);
 
           mapScreen->setTargetWaypointByLabel(targetCode);
 
