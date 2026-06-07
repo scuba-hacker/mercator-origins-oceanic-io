@@ -2,7 +2,9 @@
 
 /////////////////// DIAG SERIAL SETTINGS /////////////////////
 bool writeLogToSerial=false;
+const bool enableOTAServerAtStartup=false;
 bool testPNG=false;
+bool testLVGL=false;
 
 //#define USE_WEBSERIAL
 
@@ -18,7 +20,7 @@ bool testPNG=false;
 // trace of the other OTA app are gone.
 // To install the apps side-by-side, Oceanic must be uploaded by USB, and then t4-i2s by OTA.
 
-bool enableOtaPartitionSwitch = true;  // Long-press top button switches to the other OTA app partition
+bool enableOtaPartitionSwitch = false;  // Long-press top button switches to the other OTA app partition
 
 /////////////////////////////////////////////////////////////
 
@@ -28,6 +30,8 @@ bool enableOtaPartitionSwitch = true;  // Long-press top button switches to the 
 
 #include <MapScreen_T4.h>
 #include <LilyGo_AMOLED.h>
+#include <LV_Helper.h>
+#include <demos/lv_demos.h>
 #include <TFT_eSPI.h>
 
 #include <Adafruit_AHTX0.h>
@@ -149,7 +153,6 @@ const uint32_t diveTraceTrackStepIncrement = 50;
 
 const bool correctForReversedCompassTrackTest = true;
 
-const bool enableOTAServerAtStartup=false;
 const bool enableESPNow = !enableOTAServerAtStartup;
 
 uint8_t newLidarDataReady = 0;
@@ -400,6 +403,62 @@ void onOTAUpdateStart(AsyncElegantOtaClass* elegantOTA)
 
 bool  setupComplete = false;
 
+static void set_angle(void * obj, int32_t v)
+{
+    lv_arc_set_value((lv_obj_t *)obj, v);
+}
+
+void lvgl_test_setup()
+{
+  /*Create an Arc*/
+  lv_obj_t *arc = lv_arc_create(lv_screen_active());
+  lv_arc_set_rotation(arc, 270);
+  lv_arc_set_bg_angles(arc, 0, 360);
+  lv_obj_remove_style(arc, NULL, LV_PART_KNOB);   /*Be sure the knob is not displayed*/
+  lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);  /*To not allow adjusting by click*/
+  lv_obj_center(arc);
+
+  lv_anim_t a;
+  lv_anim_init(&a);
+  lv_anim_set_var(&a, arc);
+  lv_anim_set_exec_cb(&a, set_angle);
+  lv_anim_set_duration(&a, 1000);
+  lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);    /*Just for the demo*/
+  lv_anim_set_repeat_delay(&a, 500);
+  lv_anim_set_values(&a, 0, 100);
+  lv_anim_start(&a);
+
+
+  lv_obj_t *label = lv_label_create( lv_screen_active() );
+  lv_label_set_text( label, "Hello Arduino, I'm LVGL!" );
+  lv_obj_align( label, LV_ALIGN_CENTER, 0, 0 );
+  lv_obj_align_to(label, arc, LV_ALIGN_OUT_BOTTOM_MID, 0, 0 );
+
+  static lv_style_t style_bg;
+  static lv_style_t style_indic;
+
+  lv_style_init(&style_bg);
+  lv_style_set_border_color(&style_bg, lv_palette_main(LV_PALETTE_BLUE));
+  lv_style_set_border_width(&style_bg, 2);
+  lv_style_set_pad_all(&style_bg, 6); /*To make the indicator smaller*/
+  lv_style_set_radius(&style_bg, 6);
+  lv_style_set_anim_duration(&style_bg, 1000);
+
+  lv_style_init(&style_indic);
+  lv_style_set_bg_opa(&style_indic, LV_OPA_COVER);
+  lv_style_set_bg_color(&style_indic, lv_palette_main(LV_PALETTE_BLUE));
+  lv_style_set_radius(&style_indic, 3);
+
+  lv_obj_t *bar = lv_bar_create(lv_screen_active());
+  lv_obj_remove_style_all(bar);  /*To have a clean start*/
+  lv_obj_add_style(bar, &style_bg, 0);
+  lv_obj_add_style(bar, &style_indic, LV_PART_INDICATOR);
+
+  lv_obj_set_size(bar, 200, 20);
+  lv_obj_align_to(bar, label, LV_ALIGN_OUT_BOTTOM_MID, 0, 0 );
+  lv_bar_set_value(bar, 100, LV_ANIM_ON);
+}
+
 void setup()
 {
   #ifndef USE_WEBSERIAL
@@ -416,6 +475,23 @@ void setup()
   }
 
   amoled.begin();
+
+  if (testLVGL)
+  {
+    beginLvglHelper(amoled);
+/*   
+    char* demo="vector_graphic_not_buffered";
+
+    if (!lv_demos_create(&demo, 0)) {
+      lv_demos_show_help();
+      lv_deinit();
+      while (1);
+    }
+   */
+    lvgl_test_setup();
+    return;
+  }
+
   setScreenBrightness(dayBrightness);
   mapScreen = std::make_unique<MapScreen_T4>(tft,amoled);
 
@@ -493,6 +569,20 @@ void setup()
 
 void loop()
 { 
+  if (testLVGL)
+  {
+//    lv_task_handler();
+//    delay(5);
+    uint32_t delay = lv_timer_handler();
+    if (delay < 1) 
+      delay = 1; /*delay for at least 1 ms*/
+    else if(delay == LV_NO_TIMER_READY) 
+      delay = LV_DEF_REFR_PERIOD; /*handle LV_NO_TIMER_READY. Another option is to `sleep` for longer*/
+    
+    usleep(delay * 1000);
+    return;
+  }
+
   #ifdef COMPILE_TOF
   if (enableToFSensor && millis() > nextToFSensorTime)
   {

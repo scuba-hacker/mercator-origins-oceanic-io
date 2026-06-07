@@ -149,7 +149,8 @@ bool checkGoProButtons()
     return true;
   
   // short press primary button cycle zoom if not at startup, otherwise activate OTA.
-  if (enableOtaPartitionSwitch && p_primaryButton->pressedFor(3000))   // Pressed for can only be used for the longest lasting button press event.
+  // 3 second press and release to switch OTA partition
+  if (enableOtaPartitionSwitch && p_primaryButton->wasReleasefor(3000))
   {
     buttonTop = true;
     changeMade = true;
