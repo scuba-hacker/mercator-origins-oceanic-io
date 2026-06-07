@@ -4,7 +4,7 @@
 bool writeLogToSerial=false;
 const bool enableOTAServerAtStartup=false;
 bool testPNG=false;
-bool testLVGL=false;
+bool testLVGL=false; uint32_t testLVGLDuration = 10000;
 
 //#define USE_WEBSERIAL
 
@@ -489,7 +489,6 @@ void setup()
     }
    */
     lvgl_test_setup();
-    return;
   }
 
   setScreenBrightness(dayBrightness);
@@ -580,6 +579,8 @@ void loop()
       delay = LV_DEF_REFR_PERIOD; /*handle LV_NO_TIMER_READY. Another option is to `sleep` for longer*/
     
     usleep(delay * 1000);
+    if (millis() > testLVGLDuration)
+      testLVGL = false;
     return;
   }
 
