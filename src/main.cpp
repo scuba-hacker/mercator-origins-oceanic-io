@@ -27,6 +27,7 @@ bool enableOtaPartitionSwitch = true;  // Long-press top button switches to the 
 #include "driver/rtc_io.h"
 
 #include <MapScreen_T4.h>
+#include <NavigationWaypoints.h>
 #include <LilyGo_AMOLED.h>
 #include <TFT_eSPI.h>
 
@@ -673,6 +674,21 @@ bool processReceivedHTTPRequests()
     {
       forceDeepSleep();
       // never goes beyond here
+    }
+    else if (str.rfind("zwp:", 0) == 0)
+    {
+      int waypointIndex = atoi(str.c_str() + 4);
+      if (waypointIndex >= 0 && waypointIndex < WraysburyWaypoints::getWaypointsCount())
+      {
+        latitude = WraysburyWaypoints::waypoints[waypointIndex]._lat;
+        longitude = WraysburyWaypoints::waypoints[waypointIndex]._long;
+        mapScreen->setLocationLatLong(latitude,longitude);
+        diveTrackTest = false;
+        diveTraceTest = true;
+        latitudeDelta = 0;
+        longitudeDelta = 0;
+        refreshMap = true;
+      }
     }
   }
 

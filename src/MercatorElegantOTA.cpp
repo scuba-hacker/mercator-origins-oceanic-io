@@ -1,4 +1,5 @@
 #include <MercatorElegantOTA.h>
+#include <NavigationWaypoints.h>
 
 extern char track_and_trace_html_content[];
 
@@ -76,6 +77,24 @@ void MercatorElegantOtaClass::begin(HttpRequestQueue* httpQueue, AsyncWebServer 
     _server->on("/test", HTTP_GET, [&](AsyncWebServerRequest *request){
         _httpRequestQueue->push(std::string("test"));
         request->send(200, "text/html", track_and_trace_html_content);
+    });
+
+    // Z-prefixed waypoints (jetties etc.) for the "trace start position" dropdown on the test page.
+    _server->on("/zwaypoints", HTTP_GET, [&](AsyncWebServerRequest *request){
+        String json = "[";
+        bool first = true;
+        for (uint8_t i = 0; i < WraysburyWaypoints::getWaypointsCount(); i++)
+        {
+            const NavigationWaypoint& wp = WraysburyWaypoints::waypoints[i];
+            if (wp._label != nullptr && wp._label[0] == 'Z')
+            {
+                if (!first) json += ",";
+                first = false;
+                json += "{\"i\":" + String(i) + ",\"l\":\"" + String(wp._label) + "\",\"lat\":" + String(wp._lat, 7) + ",\"lon\":" + String(wp._long, 7) + "}";
+            }
+        }
+        json += "]";
+        request->send(200, "application/json", json);
     });
 
     _server->on("/test", HTTP_POST, [&](AsyncWebServerRequest *request){

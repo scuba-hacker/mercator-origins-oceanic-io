@@ -41,6 +41,13 @@ const char track_and_trace_html_content[] = R"rawliteral(
             background-color: #3498db;
             color: #fff;
         }
+        .dropdown {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -69,6 +76,12 @@ const char track_and_trace_html_content[] = R"rawliteral(
 </div>
 
 <div class="container">
+    <select class="dropdown" id="zWaypointSelect">
+        <option value="">Trace start: Z waypoint...</option>
+    </select>
+</div>
+
+<div class="container">
     <button class="button" id="trackButton">Track</button>
     <button class="button" id="traceButton">Trace</button>
     <button class="button" id="updateButton">Update</button>
@@ -89,6 +102,7 @@ const char track_and_trace_html_content[] = R"rawliteral(
     // Function to handle button activation
     function activateButton(buttonId) {
         var button = document.getElementById(buttonId);
+        if (!button) return;
         button.classList.add("button-active");
         setTimeout(function() {
             button.classList.remove("button-active");
@@ -97,6 +111,11 @@ const char track_and_trace_html_content[] = R"rawliteral(
     // Function to send a POST request
     function sendPostRequest(url, buttonId) {
         activateButton(buttonId);
+        // Drop focus from whatever control triggered this so a later keypress
+        // (space, arrow keys) is never captured or re-actioned by that control.
+        if (document.activeElement && document.activeElement.blur) {
+            document.activeElement.blur();
+        }
         fetch(url, {
             method: 'POST',
             headers: {
@@ -181,6 +200,30 @@ const char track_and_trace_html_content[] = R"rawliteral(
         handleButtonClick("rebootButton");
     });
 
+    // Populate the Z waypoint dropdown and wire up selection to set the trace start position
+    function loadZWaypoints() {
+        fetch('/zwaypoints')
+            .then(response => response.json())
+            .then(waypoints => {
+                var select = document.getElementById("zWaypointSelect");
+                waypoints.forEach(function(wp) {
+                    var option = document.createElement("option");
+                    option.value = wp.i;
+                    option.textContent = wp.l;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error loading Z waypoints:', error));
+    }
+
+    document.getElementById("zWaypointSelect").addEventListener("change", function() {
+        if (this.value !== "") {
+            handleButtonClick("zwp:" + this.value);
+        }
+    });
+
+    loadZWaypoints();
+
     // Function to handle update button click
     function handleUpdateButtonClick() {
         window.location.href = "/update";
@@ -204,6 +247,7 @@ const char track_and_trace_html_content[] = R"rawliteral(
 
     // Function to handle keydown events
     function handleKeyDown(event) {
+        var handled = true;
         switch(event.key) {
             case 'ArrowUp':
                 handleButtonClick("upButton");
@@ -253,6 +297,13 @@ const char track_and_trace_html_content[] = R"rawliteral(
             case '4':
                 handleButtonClick("x4Button");
                 break;
+            default:
+                handled = false;
+        }
+        // Stop the browser acting on these keys itself (e.g. arrow keys /
+        // space scrolling the page, or re-triggering a focused control).
+        if (handled) {
+            event.preventDefault();
         }
     }
 
