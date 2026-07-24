@@ -2,7 +2,7 @@
 
 extern char track_and_trace_html_content[];
 
-void MercatorElegantOtaClass::begin(std::queue<std::string>* httpQueue, AsyncWebServer *server, const char* username, const char* password)
+void MercatorElegantOtaClass::begin(HttpRequestQueue* httpQueue, AsyncWebServer *server, const char* username, const char* password)
 {
     AsyncElegantOtaClass::begin(server, username, password);
 

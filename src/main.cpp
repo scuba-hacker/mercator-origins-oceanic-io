@@ -308,7 +308,7 @@ const int nightBrightnessThreshold = 8;
 char rxQueueESPNowItemBuffer[256];
 const uint8_t queueESPNowLength=20;
 
-std::queue<std::string> httpQueue;
+HttpRequestQueue httpQueue;
 
 char currentTarget[256];
 char previousTarget[256];
@@ -538,10 +538,9 @@ void loop()
 bool processReceivedHTTPRequests()
 {
   bool refreshMap = false;
-  if (!httpQueue.empty())
+  std::string str;
+  while (httpQueue.pop(str))
   {
-    std::string str = httpQueue.back();
-    httpQueue.pop();
     if (str == std::string("track") || str == std::string("trackButton"))
     {
       // disable espnow

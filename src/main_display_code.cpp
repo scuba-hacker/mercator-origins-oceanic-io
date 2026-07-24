@@ -1,5 +1,10 @@
 #ifdef BUILD_INCLUDE_MAIN_DISPLAY_CODE
 
+// Non-blocking pacing for the track/trace tests. loop() must not stall in
+// delay() here, since that also throttles httpQueue processing (the on-screen
+// web buttons) down to the same rate.
+static uint32_t nextTraceStepTime = 0;
+static uint32_t nextTrackStepTime = 0;
 
 void setScreenBrightness(uint16_t brightness)
 {
@@ -175,36 +180,37 @@ void testMapDisplay()
 
 void executeTests(bool refreshMap)
 {
-   if (diveTrackTest)
+  if (diveTrackTest)
   {
-    mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h + (correctForReversedCompassTrackTest ? 180 : 0));
-    cycleTrackIndex();
+    if (millis() >= nextTrackStepTime)
+    {
+      nextTrackStepTime = millis() + diveTraceTrackStepPause;
+      mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(diveTrack[trackIndex]._la,diveTrack[trackIndex]._lo,diveTrack[trackIndex]._h + (correctForReversedCompassTrackTest ? 180 : 0));
+      cycleTrackIndex();
+    }
   }
 
   if (diveTraceTest)
   {
     if (latitudeDelta != 0 || longitudeDelta != 0)
     {
-      latitude+=latitudeDelta;
-      longitude+=longitudeDelta;
-      mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
-
-      delay(diveTraceTrackStepPause);
+      if (millis() >= nextTraceStepTime)
+      {
+        nextTraceStepTime = millis() + diveTraceTrackStepPause;
+        latitude+=latitudeDelta;
+        longitude+=longitudeDelta;
+        mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
+      }
     }
     else if (refreshMap)
     {
       mapScreen->drawDiverOnBestFeaturesMapAtCurrentZoom(latitude,longitude,0.0);
-    }
-    else
-    {
-      delay (50);
     }
   }
 }
 
 void cycleTrackIndex()
 {
-  delay(diveTraceTrackStepPause);
   trackIndex = (trackIndex + 1) % trackLength;
 }
 
