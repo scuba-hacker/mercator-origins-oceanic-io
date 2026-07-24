@@ -61,6 +61,11 @@ const char track_and_trace_html_content[] = R"rawliteral(
 </div>
 
 <div class="container">
+    <label for="deltaScaleSlider">Step: <span id="deltaScaleValue">1</span></label>
+    <input type="range" id="deltaScaleSlider" min="1" max="5" step="1" value="1">
+</div>
+
+<div class="container">
     <button class="button button-blue" id="upButton">&#8593;</button>
 </div>
 
@@ -179,8 +184,19 @@ const char track_and_trace_html_content[] = R"rawliteral(
         handleButtonClick("trackButton");
     });
 
+    // Trace uses the selected Z waypoint as the start position, if one is selected
+    // (ie. the dropdown is not still on its placeholder option).
+    function triggerTrace() {
+        var select = document.getElementById("zWaypointSelect");
+        if (select && select.value !== "") {
+            handleButtonClick("zwp:" + select.value);
+        } else {
+            handleButtonClick("traceButton");
+        }
+    }
+
     document.getElementById("traceButton").addEventListener("click", function() {
-        handleButtonClick("traceButton");
+        triggerTrace();
     });
 
     document.getElementById("stopButton").addEventListener("click", function() {
@@ -223,6 +239,20 @@ const char track_and_trace_html_content[] = R"rawliteral(
     });
 
     loadZWaypoints();
+
+    // Delta scale factor - controls the step size taken on each trace increment
+    var deltaScaleSlider = document.getElementById("deltaScaleSlider");
+    var deltaScaleValue = document.getElementById("deltaScaleValue");
+
+    deltaScaleSlider.addEventListener("input", function() {
+        // Live-update the label while dragging, without spamming the server.
+        deltaScaleValue.textContent = this.value;
+    });
+
+    deltaScaleSlider.addEventListener("change", function() {
+        // Fires once the value is committed (mouse released / arrow key press).
+        handleButtonClick("dsf:" + this.value);
+    });
 
     // Function to handle update button click
     function handleUpdateButtonClick() {
@@ -277,7 +307,7 @@ const char track_and_trace_html_content[] = R"rawliteral(
                 handleButtonClick("trackButton");
                 break;
             case 'c':
-                handleButtonClick("traceButton");
+                triggerTrace();
                 break;
             case 'u':
                 handleUpdateButtonClick();

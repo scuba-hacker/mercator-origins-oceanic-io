@@ -285,8 +285,13 @@ float targetDistanceFromMako=0.0;
 bool locationHasFix = false;
 int fixMessagesReceived = 0, noFixMessagesReceived = 0;
 
-double latitudeDelta = 0.0;
-double longitudeDelta = 0.0;
+const float defaultLatitudeDelta = 0.00002;
+const float defaultLongitudeDelta = 0.00002;
+const float defaultDeltaScaleFactor = 1;
+
+float latitudeDelta = 0.0;
+float longitudeDelta = 0.0;
+float deltaScaleFactor = defaultDeltaScaleFactor;
 
 int otaScreenBackColour = TFT_GREEN;
 int otaScreenForeColour = TFT_BLUE;
@@ -563,29 +568,29 @@ bool processReceivedHTTPRequests()
     }
     else if (str == std::string("u") || str == std::string("upButton"))
     {
-      latitudeDelta=0.00002;
+      latitudeDelta = defaultLatitudeDelta * deltaScaleFactor;
       longitudeDelta=0;
       diveTrackTest = false;
       diveTraceTest = true;
     }
     else if (str == std::string("d") || str == std::string("downButton"))
     {
-      latitudeDelta=-0.00002;
-      longitudeDelta=0;
+      latitudeDelta = -defaultLatitudeDelta * deltaScaleFactor;
+      longitudeDelta = 0;
       diveTrackTest = false;
       diveTraceTest = true;
     }
     else if (str == std::string("l") || str == std::string("leftButton"))
     {
-      latitudeDelta=0;
-      longitudeDelta=-0.00002;
+      latitudeDelta = 0;
+      longitudeDelta = -defaultLongitudeDelta * deltaScaleFactor;
       diveTrackTest = false;
       diveTraceTest = true;
     }
     else if (str == std::string("r") || str == std::string("rightButton"))
     {
-      latitudeDelta=0;
-      longitudeDelta=0.00002;
+      latitudeDelta = 0;
+      longitudeDelta = defaultLongitudeDelta * deltaScaleFactor;
       diveTrackTest = false;
       diveTraceTest = true;
     }
@@ -689,6 +694,12 @@ bool processReceivedHTTPRequests()
         longitudeDelta = 0;
         refreshMap = true;
       }
+    }
+    else if (str.rfind("dsf:", 0) == 0)
+    {
+      float scale = atof(str.c_str() + 4);
+      if (scale >= 1 && scale <= 30)
+        deltaScaleFactor = scale;
     }
   }
 
