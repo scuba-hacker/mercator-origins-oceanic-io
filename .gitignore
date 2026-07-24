@@ -1,5 +1,6 @@
 .pio/**
 .vscode/**
+!.vscode/settings.json
 .DS_Store
 mercator_secrets.c
 patches/__pycache__
