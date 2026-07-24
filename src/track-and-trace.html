@@ -71,12 +71,18 @@
     <button class="button" id="trackButton">Track</button>
     <button class="button" id="traceButton">Trace</button>
     <button class="button" id="updateButton">Update</button>
+    <button class="button button-green" id="startSerialButton">Start Serial</button>
+    <button class="button button-green" id="stopSerialButton">Stop Serial</button>
 </div>
 
 <div class="container">
     <button class="button button-red" id="stopButton">Stop</button>
     <button class="button button-orange" id="resetButton">Reset</button>
 </div>
+<div class="container">
+    <button class="button button-red" id="rebootButton">Reboot</button>
+</div>
+<iframe src="/webserial" width="1000" height="1000" frameborder="0"></iframe>
 
 <script>
     // Function to handle button activation
@@ -155,6 +161,23 @@
 
     document.getElementById("traceButton").addEventListener("click", function() {
         handleButtonClick("traceButton");
+    });
+
+    document.getElementById("stopButton").addEventListener("click", function() {
+        handleButtonClick("stopButton");
+    });
+
+    document.getElementById("resetButton").addEventListener("click", function() {
+        handleButtonClick("resetButton");
+    });
+    document.getElementById("startSerialButton").addEventListener("click", function() {
+        handleButtonClick("startSerialButton");
+    });
+    document.getElementById("stopSerialButton").addEventListener("click", function() {
+        handleButtonClick("stopSerialButton");
+    });
+    document.getElementById("rebootButton").addEventListener("click", function() {
+        handleButtonClick("rebootButton");
     });
 
     // Function to handle update button click
