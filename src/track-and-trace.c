@@ -1,265 +1,265 @@
-const char track_and_trace_html_content[] = 
-"<!DOCTYPE html>\n"
-"<html lang=\"en\">\n"
-"<head>\n"
-"    <meta charset=\"UTF-8\">\n"
-"    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-"    <title>Directional Buttons Control</title>\n"
-"    <style>\n"
-"        .container {\n"
-"            text-align: center;\n"
-"            margin-top: 25px;\n"
-"            margin-bottom: 25px;\n"
-"        }\n"
-"        .button {\n"
-"            display: inline-block;\n"
-"            padding: 10px 20px;\n"
-"            margin: 10px;\n"
-"            font-size: 18px;\n"
-"            cursor: pointer;\n"
-"            border: none;\n"
-"            border-radius: 5px;\n"
-"            transition: background-color 0.3s;\n"
-"        }\n"
-"        .button-active {\n"
-"            background-color: #2980b9 !important;\n"
-"            color: #fff;\n"
-"        }\n"
-"        .button-red {\n"
-"            background-color: #e74c3c;\n"
-"            color: #fff;\n"
-"        }\n"
-"        .button-orange {\n"
-"            background-color: #e67e22;\n"
-"            color: #fff;\n"
-"        }\n"
-"        .button-green {\n"
-"            background-color: #2ecc71;\n"
-"            color: #fff;\n"
-"        }\n"
-"        .button-blue {\n"
-"            background-color: #3498db;\n"
-"            color: #fff;\n"
-"        }\n"
-"    </style>\n"
-"</head>\n"
-"<body>\n"
-"\n"
-"<div class=\"container\">\n"
-"    <button class=\"button button-green\" id=\"allButton\">All</button>\n"
-"    <button class=\"button button-green\" id=\"x1Button\">x1</button>\n"
-"    <button class=\"button button-green\" id=\"x2Button\">x2</button>\n"
-"    <button class=\"button button-green\" id=\"x3Button\">x3</button>\n"
-"    <button class=\"button button-green\" id=\"x4Button\">x4</button>\n"
-"</div>\n"
-"\n"
-"<div class=\"container\">\n"
-"    <button class=\"button button-blue\" id=\"upButton\">&#8593;</button>\n"
-"</div>\n"
-"\n"
-"<div class=\"container\" style=\"margin-top: -10px; margin-bottom: -10px;\">\n"
-"    <button class=\"button button-grey\" id=\"slowerButton\">-</button>\n"
-"    <button class=\"button button-blue\" id=\"leftButton\">&#8592;</button>\n"
-"    <button class=\"button button-blue\" id=\"rightButton\">&#8594;</button>\n"
-"    <button class=\"button button-grey\" id=\"fasterButton\">+</button>\n"
-"</div>\n"
-"\n"
-"<div class=\"container\">\n"
-"    <button class=\"button button-blue\" id=\"downButton\">&#8595;</button>\n"
-"</div>\n"
-"\n"
-"<div class=\"container\">\n"
-"    <button class=\"button\" id=\"trackButton\">Track</button>\n"
-"    <button class=\"button\" id=\"traceButton\">Trace</button>\n"
-"    <button class=\"button\" id=\"updateButton\">Update</button>\n"
-"    <button class=\"button button-green\" id=\"startSerialButton\">Start Serial</button>\n"
-"    <button class=\"button button-green\" id=\"stopSerialButton\">Stop Serial</button>\n"
-"</div>\n"
-"\n"
-"<div class=\"container\">\n"
-"    <button class=\"button button-red\" id=\"stopButton\">Stop</button>\n"
-"    <button class=\"button button-orange\" id=\"resetButton\">Reset</button>\n"
-"</div>\n"
-"<div class=\"container\">\n"
-"    <button class=\"button button-red\" id=\"rebootButton\">Reboot</button>\n"
-"</div>\n"
-"<iframe src=\"/webserial\" width=\"1000\" height=\"1000\" frameborder=\"0\"></iframe>\n"
-"\n"
-"<script>\n"
-"    // Function to handle button activation\n"
-"    function activateButton(buttonId) {\n"
-"        var button = document.getElementById(buttonId);\n"
-"        button.classList.add(\"button-active\");\n"
-"        setTimeout(function() {\n"
-"            button.classList.remove(\"button-active\");\n"
-"        }, 100);\n"
-"    }\n"
-"\n"
-"    // Function to send a POST request\n"
-"    function sendPostRequest(url, buttonId) {\n"
-"        activateButton(buttonId);\n"
-"        fetch(url, {\n"
-"            method: 'POST',\n"
-"            headers: {\n"
-"                'Content-Type': 'application/x-www-form-urlencoded'\n"
-"            },\n"
-"            body: 'button=' + encodeURIComponent(buttonId)\n"
-"        });\n"
-"    }\n"
-"\n"
-"    // Function to handle button clicks\n"
-"    function handleButtonClick(buttonId) {\n"
-"        sendPostRequest(window.location.href, buttonId);\n"
-"    }\n"
-"\n"
-"    // Attach event listeners to each button\n"
-"    document.getElementById(\"allButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"allButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"x1Button\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"x1Button\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"x2Button\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"x2Button\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"x3Button\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"x3Button\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"x4Button\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"x4Button\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"upButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"upButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"leftButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"leftButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"rightButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"rightButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"downButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"downButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"slowerButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"slowerButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"fasterButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"fasterButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"trackButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"trackButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"traceButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"traceButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"stopButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"stopButton\");\n"
-"    });\n"
-"\n"
-"    document.getElementById(\"resetButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"resetButton\");\n"
-"    });\n"
-"    document.getElementById(\"startSerialButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"startSerialButton\");\n"
-"    });\n"
-"    document.getElementById(\"stopSerialButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"stopSerialButton\");\n"
-"    });\n"
-"    document.getElementById(\"rebootButton\").addEventListener(\"click\", function() {\n"
-"        handleButtonClick(\"rebootButton\");\n"
-"    });\n"
-"\n"
-"    // Function to handle update button click\n"
-"    function handleUpdateButtonClick() {\n"
-"        window.location.href =\"/update\";\n"
-"    }\n"
-"\n"
-"    // Attach event listener to the update button\n"
-"    document.getElementById(\"updateButton\").addEventListener(\"click\", handleUpdateButtonClick);\n"
-"\n"
-"    // Function to send a GET request\n"
-"    function sendGetRequest(url) {\n"
-"        fetch(url, {\n"
-"            method: 'GET',\n"
-"            headers: {\n"
-"                'Content-Type': 'text/html'\n"
-"            }\n"
-"        })\n"
-"        .then(response => response.text())\n"
-"        .then(data => document.documentElement.innerHTML = data)\n"
-"        .catch(error => console.error('Error:', error));\n"
-"    }\n"
-"\n"
-"    // Function to handle keydown events\n"
-"    function handleKeyDown(event) {\n"
-"        switch(event.key) {\n"
-"            case 'ArrowUp':\n"
-"                handleButtonClick(\"upButton\");\n"
-"                break;\n"
-"            case 'ArrowLeft':\n"
-"                handleButtonClick(\"leftButton\");\n"
-"                break;\n"
-"            case 'ArrowRight':\n"
-"                handleButtonClick(\"rightButton\");\n"
-"                break;\n"
-"            case 'ArrowDown':\n"
-"                handleButtonClick(\"downButton\");\n"
-"                break;\n"
-"            case '-':\n"
-"                handleButtonClick(\"slowerButton\");\n"
-"                break;\n"
-"            case '=':\n"
-"                handleButtonClick(\"fasterButton\");\n"
-"                break;\n"
-"            case 'r':\n"
-"                handleButtonClick(\"resetButton\");\n"
-"                break;\n"
-"            case 's':\n"
-"                handleButtonClick(\"stopButton\");\n"
-"                break;\n"
-"            case 'k':\n"
-"                handleButtonClick(\"trackButton\");\n"
-"                break;\n"
-"            case 'c':\n"
-"                handleButtonClick(\"traceButton\");\n"
-"                break;\n"
-"            case 'u':\n"
-"                handleUpdateButtonClick();\n"
-"                break;\n"
-"            case '0':\n"
-"                handleButtonClick(\"allButton\");\n"
-"                break;\n"
-"            case '1':\n"
-"                handleButtonClick(\"x1Button\");\n"
-"                break;\n"
-"            case '2':\n"
-"                handleButtonClick(\"x2Button\");\n"
-"                break;\n"
-"            case '3':\n"
-"                handleButtonClick(\"x3Button\");\n"
-"                break;\n"
-"            case '4':\n"
-"                handleButtonClick(\"x4Button\");\n"
-"                break;\n"
-"        }\n"
-"    }\n"
-"\n"
-"    // Attach keydown event listener to document\n"
-"    document.addEventListener(\"keydown\", handleKeyDown);\n"
-"</script>\n"
-"\n"
-"</body>\n"
-"</html>\n";
+const char track_and_trace_html_content[] = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directional Buttons Control</title>
+    <style>
+        .container {
+            text-align: center;
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .button-active {
+            background-color: #2980b9 !important;
+            color: #fff;
+        }
+        .button-red {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+        .button-orange {
+            background-color: #e67e22;
+            color: #fff;
+        }
+        .button-green {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+        .button-blue {
+            background-color: #3498db;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="button button-green" id="allButton">All</button>
+    <button class="button button-green" id="x1Button">x1</button>
+    <button class="button button-green" id="x2Button">x2</button>
+    <button class="button button-green" id="x3Button">x3</button>
+    <button class="button button-green" id="x4Button">x4</button>
+</div>
+
+<div class="container">
+    <button class="button button-blue" id="upButton">&#8593;</button>
+</div>
+
+<div class="container" style="margin-top: -10px; margin-bottom: -10px;">
+    <button class="button button-grey" id="slowerButton">-</button>
+    <button class="button button-blue" id="leftButton">&#8592;</button>
+    <button class="button button-blue" id="rightButton">&#8594;</button>
+    <button class="button button-grey" id="fasterButton">+</button>
+</div>
+
+<div class="container">
+    <button class="button button-blue" id="downButton">&#8595;</button>
+</div>
+
+<div class="container">
+    <button class="button" id="trackButton">Track</button>
+    <button class="button" id="traceButton">Trace</button>
+    <button class="button" id="updateButton">Update</button>
+    <button class="button button-green" id="startSerialButton">Start Serial</button>
+    <button class="button button-green" id="stopSerialButton">Stop Serial</button>
+</div>
+
+<div class="container">
+    <button class="button button-red" id="stopButton">Stop</button>
+    <button class="button button-orange" id="resetButton">Reset</button>
+</div>
+<div class="container">
+    <button class="button button-red" id="rebootButton">Reboot</button>
+</div>
+<iframe src="/webserial" width="1000" height="1000" frameborder="0"></iframe>
+
+<script>
+    // Function to handle button activation
+    function activateButton(buttonId) {
+        var button = document.getElementById(buttonId);
+        button.classList.add("button-active");
+        setTimeout(function() {
+            button.classList.remove("button-active");
+        }, 100);
+    }
+    // Function to send a POST request
+    function sendPostRequest(url, buttonId) {
+        activateButton(buttonId);
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'button=' + encodeURIComponent(buttonId)
+        });
+    }
+
+    // Function to handle button clicks
+    function handleButtonClick(buttonId) {
+        sendPostRequest(window.location.href, buttonId);
+    }
+
+    // Attach event listeners to each button
+    document.getElementById("allButton").addEventListener("click", function() {
+        handleButtonClick("allButton");
+    });
+
+    document.getElementById("x1Button").addEventListener("click", function() {
+        handleButtonClick("x1Button");
+    });
+
+    document.getElementById("x2Button").addEventListener("click", function() {
+        handleButtonClick("x2Button");
+    });
+
+    document.getElementById("x3Button").addEventListener("click", function() {
+        handleButtonClick("x3Button");
+    });
+
+    document.getElementById("x4Button").addEventListener("click", function() {
+        handleButtonClick("x4Button");
+    });
+
+    document.getElementById("upButton").addEventListener("click", function() {
+        handleButtonClick("upButton");
+    });
+
+    document.getElementById("leftButton").addEventListener("click", function() {
+        handleButtonClick("leftButton");
+    });
+
+    document.getElementById("rightButton").addEventListener("click", function() {
+        handleButtonClick("rightButton");
+    });
+
+    document.getElementById("downButton").addEventListener("click", function() {
+        handleButtonClick("downButton");
+    });
+
+    document.getElementById("slowerButton").addEventListener("click", function() {
+        handleButtonClick("slowerButton");
+    });
+    
+    document.getElementById("fasterButton").addEventListener("click", function() {
+        handleButtonClick("fasterButton");
+    });
+    
+    document.getElementById("trackButton").addEventListener("click", function() {
+        handleButtonClick("trackButton");
+    });
+
+    document.getElementById("traceButton").addEventListener("click", function() {
+        handleButtonClick("traceButton");
+    });
+
+    document.getElementById("stopButton").addEventListener("click", function() {
+        handleButtonClick("stopButton");
+    });
+
+    document.getElementById("resetButton").addEventListener("click", function() {
+        handleButtonClick("resetButton");
+    });
+    document.getElementById("startSerialButton").addEventListener("click", function() {
+        handleButtonClick("startSerialButton");
+    });
+    document.getElementById("stopSerialButton").addEventListener("click", function() {
+        handleButtonClick("stopSerialButton");
+    });
+    document.getElementById("rebootButton").addEventListener("click", function() {
+        handleButtonClick("rebootButton");
+    });
+
+    // Function to handle update button click
+    function handleUpdateButtonClick() {
+        window.location.href = "/update";
+    }
+
+    // Attach event listener to the update button
+    document.getElementById("updateButton").addEventListener("click", handleUpdateButtonClick);
+
+    // Function to send a GET request
+    function sendGetRequest(url) {
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'text/html'
+            }
+        })
+        .then(response => response.text())
+        .then(data => document.documentElement.innerHTML = data)
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to handle keydown events
+    function handleKeyDown(event) {
+        switch(event.key) {
+            case 'ArrowUp':
+                handleButtonClick("upButton");
+                break;
+            case 'ArrowLeft':
+                handleButtonClick("leftButton");
+                break;
+            case 'ArrowRight':
+                handleButtonClick("rightButton");
+                break;
+            case 'ArrowDown':
+                handleButtonClick("downButton");
+                break;
+            case '-':
+                handleButtonClick("slowerButton");
+                break;
+            case '=':
+                handleButtonClick("fasterButton");
+                break;
+            case 'r':
+                handleButtonClick("resetButton");
+                break;
+            case 's':
+                handleButtonClick("stopButton");
+                break;
+            case 'k':
+                handleButtonClick("trackButton");
+                break;
+            case 'c':
+                handleButtonClick("traceButton");
+                break;
+            case 'u':
+                handleUpdateButtonClick();
+                break;
+            case '0':
+                handleButtonClick("allButton");
+                break;
+            case '1':
+                handleButtonClick("x1Button");
+                break;
+            case '2':
+                handleButtonClick("x2Button");
+                break;
+            case '3':
+                handleButtonClick("x3Button");
+                break;
+            case '4':
+                handleButtonClick("x4Button");
+                break;
+        }
+    }
+
+    // Attach keydown event listener to document
+    document.addEventListener("keydown", handleKeyDown);
+</script>
+
+</body>
+</html>
+)rawliteral";

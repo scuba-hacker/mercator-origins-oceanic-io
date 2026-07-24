@@ -7,7 +7,7 @@ Usage: python3 convert_track_html.py
 import os
 import sys
 
-def convert_stats_html():
+def convert_html():
     # Paths relative to project root
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     html_file = os.path.join(project_root, "src", "track-and-trace.html")
@@ -27,19 +27,10 @@ def convert_stats_html():
         return False
     
     # Generate C file content
-    c_content = f"""#include <stdint.h>
 
-#ifndef STATS_HTML_C
-#define STATS_HTML_C
-
-const char STATS_HTML[] = R"rawliteral(
+    c_content = f"""const char track_and_trace_html_content[] = R"rawliteral(
 {html_content})rawliteral";
-
-const uint32_t STATS_HTML_SIZE = sizeof(STATS_HTML);
-
-#endif
-"""
-    
+"""    
     # Write C file
     try:
         with open(c_file, 'w', encoding='utf-8') as f:
@@ -51,5 +42,5 @@ const uint32_t STATS_HTML_SIZE = sizeof(STATS_HTML);
         return False
 
 if __name__ == "__main__":
-    success = convert_stats_html()
+    success = convert_html()
     sys.exit(0 if success else 1)

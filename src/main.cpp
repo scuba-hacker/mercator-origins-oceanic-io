@@ -707,6 +707,7 @@ void forceDeepSleep()
   // put ESP32 into deep sleep - faster charging
   compositeSprite->fillSprite(TFT_RED);
   resetCompositeSpriteCursor();
+  compositeSprite->setTextColor(TFT_WHITE);
   compositeSprite->print("Triggered Deep Sleep...");
   mapScreen->copyCompositeSpriteToDisplay();
   delay(3000);
