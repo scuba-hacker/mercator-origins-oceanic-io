@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Convert HTML file to C++ header with embedded string
-Usage: python3 html_to_header.py
+Convert track-and-trace.html to track-and-trace.c
+Usage: python3 convert_track_html.py
 """
 
 import os
 import sys
 
-def convert_html_to_header():
+def convert_stats_html():
     # Paths relative to project root
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    html_file = os.path.join(project_root, "src", "logs_page.html")
-    header_file = os.path.join(project_root, "src", "logs_page.h")
+    html_file = os.path.join(project_root, "src", "track-and-trace.html")
+    c_file = os.path.join(project_root, "src", "track-and-trace.c")
     
     # Check if HTML file exists
     if not os.path.exists(html_file):
@@ -26,23 +26,30 @@ def convert_html_to_header():
         print(f"Error reading HTML file: {e}")
         return False
     
-    # Generate header content
-    header_content = f"""#pragma once
+    # Generate C file content
+    c_content = f"""#include <stdint.h>
 
-const char LOGS_PAGE_HTML[] PROGMEM = R"rawliteral(
+#ifndef STATS_HTML_C
+#define STATS_HTML_C
+
+const char STATS_HTML[] = R"rawliteral(
 {html_content})rawliteral";
+
+const uint32_t STATS_HTML_SIZE = sizeof(STATS_HTML);
+
+#endif
 """
     
-    # Write header file
+    # Write C file
     try:
-        with open(header_file, 'w', encoding='utf-8') as f:
-            f.write(header_content)
-        print(f"Successfully converted {html_file} -> {header_file}")
+        with open(c_file, 'w', encoding='utf-8') as f:
+            f.write(c_content)
+        print(f"Successfully converted {html_file} -> {c_file}")
         return True
     except Exception as e:
-        print(f"Error writing header file: {e}")
+        print(f"Error writing C file: {e}")
         return False
 
 if __name__ == "__main__":
-    success = convert_html_to_header()
+    success = convert_stats_html()
     sys.exit(0 if success else 1)
